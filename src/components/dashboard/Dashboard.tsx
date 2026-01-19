@@ -1,51 +1,18 @@
-import { 
-  Smartphone, 
-  Package, 
-  Wrench, 
-  Receipt, 
-  TrendingUp,
-  AlertCircle,
-  CheckCircle2,
-  Clock
-} from "lucide-react";
+import { Smartphone, Package, Wrench, Receipt, TrendingUp, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import { StatCard } from "./StatCard";
 import { RecentActivity } from "./RecentActivity";
 import { QuickActions } from "./QuickActions";
-
 export function Dashboard() {
-  return (
-    <div className="space-y-6 animate-slide-up">
+  return <div className="space-y-6 animate-slide-up">
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Estoque Total"
-          value={156}
-          subtitle="Aparelhos em estoque"
-          icon={Smartphone}
-          trend={{ value: 12, isPositive: true }}
-          variant="primary"
-        />
-        <StatCard
-          title="Consertos Pendentes"
-          value={8}
-          subtitle="Aguardando reparo"
-          icon={Wrench}
-          variant="warning"
-        />
-        <StatCard
-          title="Consertos Prontos"
-          value={5}
-          subtitle="Para retirada"
-          icon={CheckCircle2}
-          variant="success"
-        />
-        <StatCard
-          title="Contas a Receber"
-          value="R$ 4.580"
-          subtitle="Este mês"
-          icon={Receipt}
-          variant="danger"
-        />
+        <StatCard title="Estoque Total" value={156} subtitle="Aparelhos em estoque" icon={Smartphone} trend={{
+        value: 12,
+        isPositive: true
+      }} variant="primary" />
+        <StatCard title="Consertos Pendentes" value={8} subtitle="Aguardando reparo" icon={Wrench} variant="warning" />
+        <StatCard title="Consertos Prontos" value={5} subtitle="Para retirada" icon={CheckCircle2} variant="success" />
+        <StatCard title="Contas a Receber" value="R$ 4.580" subtitle="Este mês" icon={Receipt} variant="danger" />
       </div>
 
       {/* Secondary Stats */}
@@ -57,7 +24,7 @@ export function Dashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Novos</p>
-              <p className="text-2xl font-bold">78</p>
+              <p className="text-2xl font-bold">0</p>
             </div>
           </div>
         </div>
@@ -68,7 +35,7 @@ export function Dashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Usados</p>
-              <p className="text-2xl font-bold">45</p>
+              <p className="text-2xl font-bold">0</p>
             </div>
           </div>
         </div>
@@ -79,7 +46,7 @@ export function Dashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Acessórios</p>
-              <p className="text-2xl font-bold">33</p>
+              <p className="text-2xl font-bold">0</p>
             </div>
           </div>
         </div>
@@ -94,6 +61,5 @@ export function Dashboard() {
           <QuickActions />
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }
