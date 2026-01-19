@@ -1,11 +1,68 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Header } from "@/components/layout/Header";
+import { Dashboard } from "@/components/dashboard/Dashboard";
+import { InventoryTable } from "@/components/inventory/InventoryTable";
+import { RepairsSection } from "@/components/repairs/RepairsSection";
+import { TransactionsSection } from "@/components/transactions/TransactionsSection";
+import { AccountsReceivable } from "@/components/accounts/AccountsReceivable";
+import { cn } from "@/lib/utils";
 
 const Index = () => {
+  const [activeSection, setActiveSection] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const renderContent = () => {
+    switch (activeSection) {
+      case "dashboard":
+        return <Dashboard />;
+      case "novos":
+        return <InventoryTable title="Aparelhos Novos" type="novos" />;
+      case "usados":
+        return <InventoryTable title="Segunda Mão" type="usados" />;
+      case "acessorios":
+        return <InventoryTable title="Acessórios" type="acessorios" />;
+      case "consertos":
+        return <RepairsSection />;
+      case "movimentacao":
+        return <TransactionsSection />;
+      case "contas":
+        return <AccountsReceivable />;
+      default:
+        return <Dashboard />;
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-background">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-30 bg-foreground/20 backdrop-blur-sm lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div className={cn(
+        "fixed inset-y-0 left-0 z-40 w-64 transform transition-transform duration-300 lg:translate-x-0",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        <Sidebar 
+          activeSection={activeSection} 
+          onSectionChange={(section) => {
+            setActiveSection(section);
+            setSidebarOpen(false);
+          }} 
+        />
+      </div>
+
+      {/* Main Content */}
+      <div className="lg:pl-64">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <main className="p-4 lg:p-6">
+          {renderContent()}
+        </main>
       </div>
     </div>
   );
