@@ -1,0 +1,34 @@
+export interface InventoryItem {
+  id: number;
+  nome: string;
+  marca: string;
+  modelo: string;
+  preco: number;
+  quantidade: number;
+  status: "disponivel" | "reservado" | "vendido";
+  condicao: "novo" | "usado" | "seminovo";
+  tipo: "novos" | "usados" | "acessorios";
+}
+
+export interface Repair {
+  id: number;
+  aparelho: string;
+  cliente: string;
+  telefone: string;
+  problema: string;
+  dataEntrada: string;
+  previsao: string;
+  valor: number;
+  status: "pendente" | "em_andamento" | "pronto" | "entregue";
+}
+
+export interface Account {
+  id: number;
+  cliente: string;
+  telefone: string;
+  descricao: string;
+  valor: number;
+  valorPago: number;
+  dataVencimento: string;
+  status: "pendente" | "atrasado" | "pago" | "parcial";
+}
