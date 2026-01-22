@@ -23,7 +23,6 @@ const menuItems = [
   { id: "usados", label: "Segunda Mão", icon: Package },
   { id: "acessorios", label: "Acessórios", icon: Headphones },
   { id: "consertos", label: "Consertos", icon: Wrench },
-  { id: "movimentacao", label: "Entrada/Saída", icon: ArrowDownUp },
   { id: "contas", label: "Contas a Receber", icon: Receipt },
 ];
 

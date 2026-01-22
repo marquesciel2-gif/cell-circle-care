@@ -4,7 +4,6 @@ import { Header } from "@/components/layout/Header";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { InventoryTable } from "@/components/inventory/InventoryTable";
 import { RepairsSection } from "@/components/repairs/RepairsSection";
-import { TransactionsSection } from "@/components/transactions/TransactionsSection";
 import { AccountsReceivable } from "@/components/accounts/AccountsReceivable";
 import { cn } from "@/lib/utils";
 
@@ -24,8 +23,6 @@ const Index = () => {
         return <InventoryTable title="Acessórios" type="acessorios" />;
       case "consertos":
         return <RepairsSection />;
-      case "movimentacao":
-        return <TransactionsSection />;
       case "contas":
         return <AccountsReceivable />;
       default:
