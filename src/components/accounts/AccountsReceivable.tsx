@@ -6,6 +6,7 @@ import {
   Phone,
   AlertCircle,
   CheckCircle2,
+  Trash2,
   Clock,
   DollarSign
 } from "lucide-react";
@@ -99,6 +100,11 @@ export function AccountsReceivable() {
       title: "Pagamento recebido!",
       description: `R$ ${valorRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} registrado.`,
     });
+  };
+
+  const handleDelete = (id: number) => {
+    setAccounts(accounts.filter(a => a.id !== id));
+    toast({ title: "Conta removida" });
   };
 
   const openReceiveModal = (account: Account) => {
@@ -223,6 +229,14 @@ export function AccountsReceivable() {
                         Receber
                       </Button>
                     )}
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(account.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
