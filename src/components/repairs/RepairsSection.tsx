@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { 
   Search, 
-  Filter, 
   Plus, 
   Clock, 
   CheckCircle2, 
-  AlertCircle,
   Wrench,
   Phone,
   User,
@@ -15,25 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AddRepairModal } from "@/components/modals/AddRepairModal";
+import { Repair } from "@/types";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { toast } from "@/hooks/use-toast";
 
-interface Repair {
-  id: number;
-  aparelho: string;
-  cliente: string;
-  telefone: string;
-  problema: string;
-  dataEntrada: string;
-  previsao: string;
-  valor: number;
-  status: "pendente" | "em_andamento" | "pronto" | "entregue";
-}
-
-const mockRepairs: Repair[] = [
+const initialRepairs: Repair[] = [
   { id: 1, aparelho: "iPhone 12 - Tela quebrada", cliente: "João Silva", telefone: "(11) 99999-1234", problema: "Troca de tela", dataEntrada: "15/01/2025", previsao: "18/01/2025", valor: 450, status: "pendente" },
   { id: 2, aparelho: "Galaxy S21 - Bateria", cliente: "Maria Santos", telefone: "(11) 98888-5678", problema: "Troca de bateria", dataEntrada: "14/01/2025", previsao: "16/01/2025", valor: 180, status: "em_andamento" },
-  { id: 3, aparelho: "Moto G52 - Conector", cliente: "Carlos Oliveira", telefone: "(11) 97777-9012", problema: "Troca de conector de carga", dataEntrada: "13/01/2025", previsao: "15/01/2025", valor: 120, status: "pronto" },
-  { id: 4, aparelho: "iPhone 11 - Câmera", cliente: "Ana Costa", telefone: "(11) 96666-3456", problema: "Câmera não funciona", dataEntrada: "12/01/2025", previsao: "17/01/2025", valor: 350, status: "pendente" },
-  { id: 5, aparelho: "Redmi Note 12 - Display", cliente: "Pedro Lima", telefone: "(11) 95555-7890", problema: "Display com manchas", dataEntrada: "10/01/2025", previsao: "14/01/2025", valor: 280, status: "pronto" },
 ];
 
 const statusConfig = {
@@ -59,7 +46,14 @@ const statusConfig = {
   },
 };
 
-function RepairCard({ repair }: { repair: Repair }) {
+interface RepairCardProps {
+  repair: Repair;
+  onStart: (id: number) => void;
+  onFinish: (id: number) => void;
+  onDeliver: (id: number) => void;
+}
+
+function RepairCard({ repair, onStart, onFinish, onDeliver }: RepairCardProps) {
   const config = statusConfig[repair.status];
   const StatusIcon = config.icon;
 
@@ -97,17 +91,17 @@ function RepairCard({ repair }: { repair: Repair }) {
         </span>
         <div className="flex gap-2">
           {repair.status === "pendente" && (
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" onClick={() => onStart(repair.id)}>
               Iniciar Reparo
             </Button>
           )}
           {repair.status === "em_andamento" && (
-            <Button size="sm" className="gradient-success text-success-foreground border-0">
+            <Button size="sm" className="gradient-success text-success-foreground border-0" onClick={() => onFinish(repair.id)}>
               Finalizar
             </Button>
           )}
           {repair.status === "pronto" && (
-            <Button size="sm" className="gradient-primary text-primary-foreground border-0">
+            <Button size="sm" className="gradient-primary text-primary-foreground border-0" onClick={() => onDeliver(repair.id)}>
               Entregar
             </Button>
           )}
@@ -119,16 +113,50 @@ function RepairCard({ repair }: { repair: Repair }) {
 
 export function RepairsSection() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [repairs, setRepairs] = useLocalStorage<Repair[]>("repairs", initialRepairs);
+
+  const filteredRepairs = repairs.filter(r =>
+    r.aparelho.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.cliente.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   
-  const pendentes = mockRepairs.filter(r => r.status === "pendente" || r.status === "em_andamento");
-  const prontos = mockRepairs.filter(r => r.status === "pronto");
+  const pendentes = filteredRepairs.filter(r => r.status === "pendente" || r.status === "em_andamento");
+  const prontos = filteredRepairs.filter(r => r.status === "pronto");
+
+  const handleAddRepair = (newRepair: Omit<Repair, "id" | "status">) => {
+    const id = Date.now();
+    setRepairs([...repairs, { ...newRepair, id, status: "pendente" }]);
+    toast({
+      title: "Conserto registrado!",
+      description: `Conserto para ${newRepair.cliente} foi registrado.`,
+    });
+  };
+
+  const handleStart = (id: number) => {
+    setRepairs(repairs.map(r => r.id === id ? { ...r, status: "em_andamento" as const } : r));
+    toast({ title: "Reparo iniciado!" });
+  };
+
+  const handleFinish = (id: number) => {
+    setRepairs(repairs.map(r => r.id === id ? { ...r, status: "pronto" as const } : r));
+    toast({ title: "Reparo finalizado!", description: "Aparelho pronto para entrega." });
+  };
+
+  const handleDeliver = (id: number) => {
+    setRepairs(repairs.filter(r => r.id !== id));
+    toast({ title: "Aparelho entregue!", description: "Conserto concluído com sucesso." });
+  };
 
   return (
     <div className="space-y-4 animate-slide-up">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-foreground">Consertos</h1>
-        <Button className="gradient-primary text-primary-foreground border-0">
+        <Button 
+          className="gradient-primary text-primary-foreground border-0"
+          onClick={() => setModalOpen(true)}
+        >
           <Plus className="mr-2 h-4 w-4" />
           Novo Conserto
         </Button>
@@ -160,21 +188,52 @@ export function RepairsSection() {
         </TabsList>
 
         <TabsContent value="pendentes" className="mt-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {pendentes.map((repair) => (
-              <RepairCard key={repair.id} repair={repair} />
-            ))}
-          </div>
+          {pendentes.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
+              Nenhum conserto pendente. Clique em "Novo Conserto" para registrar.
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {pendentes.map((repair) => (
+                <RepairCard 
+                  key={repair.id} 
+                  repair={repair} 
+                  onStart={handleStart}
+                  onFinish={handleFinish}
+                  onDeliver={handleDeliver}
+                />
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="prontos" className="mt-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {prontos.map((repair) => (
-              <RepairCard key={repair.id} repair={repair} />
-            ))}
-          </div>
+          {prontos.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
+              Nenhum conserto pronto para entrega.
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {prontos.map((repair) => (
+                <RepairCard 
+                  key={repair.id} 
+                  repair={repair}
+                  onStart={handleStart}
+                  onFinish={handleFinish}
+                  onDeliver={handleDeliver}
+                />
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
+
+      {/* Modal */}
+      <AddRepairModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onAdd={handleAddRepair}
+      />
     </div>
   );
 }
