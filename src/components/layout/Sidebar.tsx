@@ -3,12 +3,9 @@ import {
   Smartphone, 
   Package, 
   Wrench, 
-  ArrowDownUp, 
   Receipt, 
   Settings,
-  Headphones,
-  BatteryCharging,
-  ShieldCheck
+  Headphones
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -63,7 +60,13 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
 
         {/* Footer */}
         <div className="border-t border-sidebar-border p-4">
-          <button className="nav-item w-full">
+          <button 
+            onClick={() => onSectionChange("configuracoes")}
+            className={cn(
+              "nav-item w-full",
+              activeSection === "configuracoes" && "nav-item-active"
+            )}
+          >
             <Settings className="h-5 w-5" />
             <span>Configurações</span>
           </button>

@@ -18,7 +18,7 @@ export interface Repair {
   problema: string;
   dataEntrada: string;
   previsao: string;
-  valor: number;
+  valor?: number;
   status: "pendente" | "em_andamento" | "pronto" | "entregue";
 }
 
@@ -30,5 +30,14 @@ export interface Account {
   valor: number;
   valorPago: number;
   dataVencimento: string;
+  formaPagamento: "promissoria" | "avista" | "cartao";
+  numeroParcelas?: number;
   status: "pendente" | "atrasado" | "pago" | "parcial";
+}
+
+export interface AppSettings {
+  theme: "light" | "dark" | "system";
+  storeName: string;
+  storePhone: string;
+  storeAddress: string;
 }

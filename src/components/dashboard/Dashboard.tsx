@@ -1,18 +1,60 @@
-import { Smartphone, Package, Wrench, Receipt, TrendingUp, AlertCircle, CheckCircle2, Clock } from "lucide-react";
+import { Smartphone, Package, Wrench, Receipt, Headphones } from "lucide-react";
 import { StatCard } from "./StatCard";
-import { RecentActivity } from "./RecentActivity";
 import { QuickActions } from "./QuickActions";
+import { InventoryItem, Repair, Account } from "@/types";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+
 export function Dashboard() {
-  return <div className="space-y-6 animate-slide-up">
+  const [novos] = useLocalStorage<InventoryItem[]>("inventory_novos", []);
+  const [usados] = useLocalStorage<InventoryItem[]>("inventory_usados", []);
+  const [acessorios] = useLocalStorage<InventoryItem[]>("inventory_acessorios", []);
+  const [repairs] = useLocalStorage<Repair[]>("repairs", []);
+  const [accounts] = useLocalStorage<Account[]>("accounts", []);
+
+  const totalNovos = novos.reduce((sum, item) => sum + item.quantidade, 0);
+  const totalUsados = usados.reduce((sum, item) => sum + item.quantidade, 0);
+  const totalAcessorios = acessorios.reduce((sum, item) => sum + item.quantidade, 0);
+  const totalEstoque = totalNovos + totalUsados + totalAcessorios;
+
+  const consertosPendentes = repairs.filter(r => r.status === "pendente" || r.status === "em_andamento").length;
+  const consertosProntos = repairs.filter(r => r.status === "pronto").length;
+
+  const totalContasReceber = accounts
+    .filter(a => a.status !== "pago")
+    .reduce((sum, a) => sum + (a.valor - a.valorPago), 0);
+
+  return (
+    <div className="space-y-6 animate-slide-up">
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Estoque Total" value={156} subtitle="Aparelhos em estoque" icon={Smartphone} trend={{
-        value: 12,
-        isPositive: true
-      }} variant="primary" />
-        <StatCard title="Consertos Pendentes" value={8} subtitle="Aguardando reparo" icon={Wrench} variant="warning" />
-        <StatCard title="Consertos Prontos" value={5} subtitle="Para retirada" icon={CheckCircle2} variant="success" />
-        <StatCard title="Contas a Receber" value="R$ 4.580" subtitle="Este mês" icon={Receipt} variant="danger" />
+        <StatCard 
+          title="Estoque Total" 
+          value={totalEstoque} 
+          subtitle="Aparelhos em estoque" 
+          icon={Smartphone} 
+          variant="primary" 
+        />
+        <StatCard 
+          title="Consertos Pendentes" 
+          value={consertosPendentes} 
+          subtitle="Aguardando reparo" 
+          icon={Wrench} 
+          variant="warning" 
+        />
+        <StatCard 
+          title="Consertos Prontos" 
+          value={consertosProntos} 
+          subtitle="Para retirada" 
+          icon={Wrench} 
+          variant="success" 
+        />
+        <StatCard 
+          title="Contas a Receber" 
+          value={`R$ ${totalContasReceber.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`} 
+          subtitle="Total pendente" 
+          icon={Receipt} 
+          variant="danger" 
+        />
       </div>
 
       {/* Secondary Stats */}
@@ -24,7 +66,7 @@ export function Dashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Novos</p>
-              <p className="text-2xl font-bold">0</p>
+              <p className="text-2xl font-bold">{totalNovos}</p>
             </div>
           </div>
         </div>
@@ -35,31 +77,27 @@ export function Dashboard() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Usados</p>
-              <p className="text-2xl font-bold">0</p>
+              <p className="text-2xl font-bold">{totalUsados}</p>
             </div>
           </div>
         </div>
         <div className="stat-card">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10">
-              <TrendingUp className="h-6 w-6 text-success" />
+              <Headphones className="h-6 w-6 text-success" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Acessórios</p>
-              <p className="text-2xl font-bold">0</p>
+              <p className="text-2xl font-bold">{totalAcessorios}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <RecentActivity />
-        </div>
-        <div>
-          <QuickActions />
-        </div>
+      {/* Quick Actions */}
+      <div className="max-w-md">
+        <QuickActions />
       </div>
-    </div>;
+    </div>
+  );
 }

@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Account } from "@/types";
 
-interface AddAccountModalProps {
+interface EditAccountModalProps {
   open: boolean;
   onClose: () => void;
-  onAdd: (account: Omit<Account, "id" | "status">) => void;
+  account: Account | null;
+  onSave: (account: Account) => void;
 }
 
 const paymentMethods = [
@@ -15,46 +16,58 @@ const paymentMethods = [
   { value: "cartao" as const, label: "Cartão" },
 ];
 
-export function AddAccountModal({ open, onClose, onAdd }: AddAccountModalProps) {
+export function EditAccountModal({ open, onClose, account, onSave }: EditAccountModalProps) {
   const [cliente, setCliente] = useState("");
   const [telefone, setTelefone] = useState("");
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
-  const [valorPago, setValorPago] = useState("0");
+  const [valorPago, setValorPago] = useState("");
   const [dataVencimento, setDataVencimento] = useState("");
   const [formaPagamento, setFormaPagamento] = useState<Account["formaPagamento"]>("avista");
   const [numeroParcelas, setNumeroParcelas] = useState("");
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr + "T00:00:00");
-    return date.toLocaleDateString("pt-BR");
-  };
+  useEffect(() => {
+    if (account) {
+      setCliente(account.cliente);
+      setTelefone(account.telefone);
+      setDescricao(account.descricao);
+      setValor(account.valor.toString());
+      setValorPago(account.valorPago.toString());
+      setDataVencimento(account.dataVencimento);
+      setFormaPagamento(account.formaPagamento);
+      setNumeroParcelas(account.numeroParcelas?.toString() || "");
+    }
+  }, [account]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cliente || !telefone || !descricao || !valor || !dataVencimento) return;
+    if (!account || !cliente || !telefone || !descricao || !valor) return;
 
-    onAdd({
+    const novoValorPago = parseFloat(valorPago) || 0;
+    const valorTotal = parseFloat(valor);
+    let novoStatus: Account["status"] = account.status;
+    
+    if (novoValorPago >= valorTotal) {
+      novoStatus = "pago";
+    } else if (novoValorPago > 0) {
+      novoStatus = "parcial";
+    } else {
+      novoStatus = "pendente";
+    }
+
+    onSave({
+      ...account,
       cliente,
       telefone,
       descricao,
-      valor: parseFloat(valor),
-      valorPago: parseFloat(valorPago) || 0,
-      dataVencimento: formatDate(dataVencimento),
+      valor: valorTotal,
+      valorPago: novoValorPago,
+      dataVencimento,
       formaPagamento,
       numeroParcelas: numeroParcelas ? parseInt(numeroParcelas) : undefined,
+      status: novoStatus,
     });
 
-    // Reset form
-    setCliente("");
-    setTelefone("");
-    setDescricao("");
-    setValor("");
-    setValorPago("0");
-    setDataVencimento("");
-    setFormaPagamento("avista");
-    setNumeroParcelas("");
     onClose();
   };
 
@@ -62,7 +75,7 @@ export function AddAccountModal({ open, onClose, onAdd }: AddAccountModalProps) 
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Nova Conta a Receber</DialogTitle>
+          <DialogTitle>Editar Conta</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -155,13 +168,13 @@ export function AddAccountModal({ open, onClose, onAdd }: AddAccountModalProps) 
             </div>
           )}
           <div>
-            <label className="text-sm font-medium text-foreground">Data de Vencimento *</label>
+            <label className="text-sm font-medium text-foreground">Data de Vencimento</label>
             <input
-              type="date"
+              type="text"
               value={dataVencimento}
               onChange={(e) => setDataVencimento(e.target.value)}
+              placeholder="DD/MM/AAAA"
               className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              required
             />
           </div>
           <div className="flex justify-end gap-3 pt-4">
@@ -169,7 +182,7 @@ export function AddAccountModal({ open, onClose, onAdd }: AddAccountModalProps) 
               Cancelar
             </Button>
             <Button type="submit" className="gradient-primary text-primary-foreground border-0">
-              Adicionar Conta
+              Salvar Alterações
             </Button>
           </div>
         </form>
