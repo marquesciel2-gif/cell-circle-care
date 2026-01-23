@@ -7,19 +7,23 @@ import {
   Wrench,
   Phone,
   User,
-  Calendar
+  Calendar,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddRepairModal } from "@/components/modals/AddRepairModal";
+import { EditRepairModal } from "@/components/modals/EditRepairModal";
+import { FinishRepairModal } from "@/components/modals/FinishRepairModal";
 import { Repair } from "@/types";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { toast } from "@/hooks/use-toast";
 
 const initialRepairs: Repair[] = [
-  { id: 1, aparelho: "iPhone 12 - Tela quebrada", cliente: "João Silva", telefone: "(11) 99999-1234", problema: "Troca de tela", dataEntrada: "15/01/2025", previsao: "18/01/2025", valor: 450, status: "pendente" },
+  { id: 1, aparelho: "iPhone 12 - Tela quebrada", cliente: "João Silva", telefone: "(11) 99999-1234", problema: "Troca de tela", dataEntrada: "15/01/2025", previsao: "18/01/2025", status: "pendente" },
   { id: 2, aparelho: "Galaxy S21 - Bateria", cliente: "Maria Santos", telefone: "(11) 98888-5678", problema: "Troca de bateria", dataEntrada: "14/01/2025", previsao: "16/01/2025", valor: 180, status: "em_andamento" },
 ];
 
@@ -49,11 +53,13 @@ const statusConfig = {
 interface RepairCardProps {
   repair: Repair;
   onStart: (id: number) => void;
-  onFinish: (id: number) => void;
+  onFinish: (repair: Repair) => void;
   onDeliver: (id: number) => void;
+  onEdit: (repair: Repair) => void;
+  onDelete: (id: number) => void;
 }
 
-function RepairCard({ repair, onStart, onFinish, onDeliver }: RepairCardProps) {
+function RepairCard({ repair, onStart, onFinish, onDeliver, onEdit, onDelete }: RepairCardProps) {
   const config = statusConfig[repair.status];
   const StatusIcon = config.icon;
 
@@ -64,10 +70,18 @@ function RepairCard({ repair, onStart, onFinish, onDeliver }: RepairCardProps) {
           <h3 className="font-semibold text-foreground">{repair.aparelho}</h3>
           <p className="text-sm text-muted-foreground">{repair.problema}</p>
         </div>
-        <Badge variant="outline" className={cn("text-xs", config.className)}>
-          <StatusIcon className="mr-1 h-3 w-3" />
-          {config.label}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className={cn("text-xs", config.className)}>
+            <StatusIcon className="mr-1 h-3 w-3" />
+            {config.label}
+          </Badge>
+          <Button size="sm" variant="ghost" onClick={() => onEdit(repair)}>
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => onDelete(repair.id)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-2 text-sm">
@@ -87,7 +101,7 @@ function RepairCard({ repair, onStart, onFinish, onDeliver }: RepairCardProps) {
 
       <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
         <span className="text-lg font-bold text-foreground">
-          R$ {repair.valor.toLocaleString('pt-BR')}
+          {repair.valor ? `R$ ${repair.valor.toLocaleString('pt-BR')}` : "Valor a definir"}
         </span>
         <div className="flex gap-2">
           {repair.status === "pendente" && (
@@ -96,7 +110,7 @@ function RepairCard({ repair, onStart, onFinish, onDeliver }: RepairCardProps) {
             </Button>
           )}
           {repair.status === "em_andamento" && (
-            <Button size="sm" className="gradient-success text-success-foreground border-0" onClick={() => onFinish(repair.id)}>
+            <Button size="sm" className="gradient-success text-success-foreground border-0" onClick={() => onFinish(repair)}>
               Finalizar
             </Button>
           )}
@@ -114,6 +128,9 @@ function RepairCard({ repair, onStart, onFinish, onDeliver }: RepairCardProps) {
 export function RepairsSection() {
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [finishModalOpen, setFinishModalOpen] = useState(false);
+  const [selectedRepair, setSelectedRepair] = useState<Repair | null>(null);
   const [repairs, setRepairs] = useLocalStorage<Repair[]>("repairs", initialRepairs);
 
   const filteredRepairs = repairs.filter(r =>
@@ -138,14 +155,34 @@ export function RepairsSection() {
     toast({ title: "Reparo iniciado!" });
   };
 
-  const handleFinish = (id: number) => {
-    setRepairs(repairs.map(r => r.id === id ? { ...r, status: "pronto" as const } : r));
+  const handleOpenFinish = (repair: Repair) => {
+    setSelectedRepair(repair);
+    setFinishModalOpen(true);
+  };
+
+  const handleFinish = (id: number, valor: number) => {
+    setRepairs(repairs.map(r => r.id === id ? { ...r, status: "pronto" as const, valor } : r));
     toast({ title: "Reparo finalizado!", description: "Aparelho pronto para entrega." });
   };
 
   const handleDeliver = (id: number) => {
     setRepairs(repairs.filter(r => r.id !== id));
     toast({ title: "Aparelho entregue!", description: "Conserto concluído com sucesso." });
+  };
+
+  const handleEdit = (repair: Repair) => {
+    setSelectedRepair(repair);
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = (updatedRepair: Repair) => {
+    setRepairs(repairs.map(r => r.id === updatedRepair.id ? updatedRepair : r));
+    toast({ title: "Conserto atualizado!" });
+  };
+
+  const handleDelete = (id: number) => {
+    setRepairs(repairs.filter(r => r.id !== id));
+    toast({ title: "Conserto removido" });
   };
 
   return (
@@ -199,8 +236,10 @@ export function RepairsSection() {
                   key={repair.id} 
                   repair={repair} 
                   onStart={handleStart}
-                  onFinish={handleFinish}
+                  onFinish={handleOpenFinish}
                   onDeliver={handleDeliver}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
                 />
               ))}
             </div>
@@ -219,8 +258,10 @@ export function RepairsSection() {
                   key={repair.id} 
                   repair={repair}
                   onStart={handleStart}
-                  onFinish={handleFinish}
+                  onFinish={handleOpenFinish}
                   onDeliver={handleDeliver}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
                 />
               ))}
             </div>
@@ -228,11 +269,23 @@ export function RepairsSection() {
         </TabsContent>
       </Tabs>
 
-      {/* Modal */}
+      {/* Modals */}
       <AddRepairModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onAdd={handleAddRepair}
+      />
+      <EditRepairModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        repair={selectedRepair}
+        onSave={handleSaveEdit}
+      />
+      <FinishRepairModal
+        open={finishModalOpen}
+        onClose={() => setFinishModalOpen(false)}
+        repair={selectedRepair}
+        onFinish={handleFinish}
       />
     </div>
   );

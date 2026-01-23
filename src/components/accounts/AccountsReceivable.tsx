@@ -8,20 +8,25 @@ import {
   CheckCircle2,
   Trash2,
   Clock,
-  DollarSign
+  DollarSign,
+  Edit,
+  CreditCard,
+  FileText,
+  Banknote
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { AddAccountModal } from "@/components/modals/AddAccountModal";
 import { ReceivePaymentModal } from "@/components/modals/ReceivePaymentModal";
+import { EditAccountModal } from "@/components/modals/EditAccountModal";
 import { Account } from "@/types";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { toast } from "@/hooks/use-toast";
 
 const initialAccounts: Account[] = [
-  { id: 1, cliente: "João Silva", telefone: "(11) 99999-1234", descricao: "iPhone 12 - Conserto de tela", valor: 450, valorPago: 0, dataVencimento: "20/01/2025", status: "pendente" },
-  { id: 2, cliente: "Maria Santos", telefone: "(11) 98888-5678", descricao: "Galaxy S21 - Parcelado 2x", valor: 1899, valorPago: 949.5, dataVencimento: "15/01/2025", status: "parcial" },
+  { id: 1, cliente: "João Silva", telefone: "(11) 99999-1234", descricao: "iPhone 12 - Conserto de tela", valor: 450, valorPago: 0, dataVencimento: "20/01/2025", formaPagamento: "promissoria", numeroParcelas: 3, status: "pendente" },
+  { id: 2, cliente: "Maria Santos", telefone: "(11) 98888-5678", descricao: "Galaxy S21 - Parcelado 2x", valor: 1899, valorPago: 949.5, dataVencimento: "15/01/2025", formaPagamento: "cartao", status: "parcial" },
 ];
 
 const statusConfig = {
@@ -47,10 +52,23 @@ const statusConfig = {
   },
 };
 
+const paymentIcons = {
+  promissoria: FileText,
+  avista: Banknote,
+  cartao: CreditCard,
+};
+
+const paymentLabels = {
+  promissoria: "Promissória",
+  avista: "À Vista",
+  cartao: "Cartão",
+};
+
 export function AccountsReceivable() {
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [receiveModalOpen, setReceiveModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [accounts, setAccounts] = useLocalStorage<Account[]>("accounts", initialAccounts);
 
@@ -105,6 +123,16 @@ export function AccountsReceivable() {
   const handleDelete = (id: number) => {
     setAccounts(accounts.filter(a => a.id !== id));
     toast({ title: "Conta removida" });
+  };
+
+  const handleEdit = (account: Account) => {
+    setSelectedAccount(account);
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = (updatedAccount: Account) => {
+    setAccounts(accounts.map(a => a.id === updatedAccount.id ? updatedAccount : a));
+    toast({ title: "Conta atualizada!" });
   };
 
   const openReceiveModal = (account: Account) => {
@@ -179,6 +207,7 @@ export function AccountsReceivable() {
           filteredAccounts.map((account) => {
             const config = statusConfig[account.status];
             const StatusIcon = config.icon;
+            const PaymentIcon = paymentIcons[account.formaPagamento];
             const restante = account.valor - account.valorPago;
 
             return (
@@ -188,11 +217,16 @@ export function AccountsReceivable() {
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
                       <h3 className="font-semibold text-foreground">{account.cliente}</h3>
                       <Badge variant="outline" className={cn("text-xs", config.className)}>
                         <StatusIcon className="mr-1 h-3 w-3" />
                         {config.label}
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs">
+                        <PaymentIcon className="mr-1 h-3 w-3" />
+                        {paymentLabels[account.formaPagamento]}
+                        {account.numeroParcelas && ` (${account.numeroParcelas}x)`}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{account.descricao}</p>
@@ -220,6 +254,13 @@ export function AccountsReceivable() {
                         </p>
                       )}
                     </div>
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => handleEdit(account)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                     {account.status !== "pago" && (
                       <Button 
                         size="sm" 
@@ -256,6 +297,12 @@ export function AccountsReceivable() {
         onClose={() => setReceiveModalOpen(false)}
         account={selectedAccount}
         onReceive={handleReceivePayment}
+      />
+      <EditAccountModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        account={selectedAccount}
+        onSave={handleSaveEdit}
       />
     </div>
   );
