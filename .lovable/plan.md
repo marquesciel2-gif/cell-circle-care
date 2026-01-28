@@ -1,38 +1,41 @@
 
-## Correção das Ações do Dashboard
+## Correção do Dashboard - Contas a Receber
 
-### Problema Identificado
-O componente `QuickActions` espera receber uma função `onNavigate` para navegar entre as seções do app, mas o `Dashboard` não está passando essa prop. Por isso, quando você clica nos botões de ação rápida, nada acontece.
+### Problema
+Atualmente, o card "Contas a Receber" mostra o **valor monetário total** (ex: R$ 500), mas você quer ver a **quantidade de contas** pendentes (ex: "1" conta).
 
 ### Solução
 
-**1. Atualizar `Dashboard.tsx`**
-- Adicionar uma prop `onNavigate` ao componente Dashboard
-- Passar essa prop para o componente `QuickActions`
+Alterar o card "Contas a Receber" para mostrar:
+- **Valor principal**: Quantidade de contas pendentes (ex: "1", "3", etc.)
+- **Subtítulo**: O valor total em reais pendente (ex: "R$ 500 pendente")
 
-**2. Atualizar `Index.tsx`**
-- Passar a função `setActiveSection` como prop `onNavigate` para o Dashboard
-
-### Mudanças Técnicas
+### Mudança Técnica
 
 **src/components/dashboard/Dashboard.tsx:**
-```tsx
-interface DashboardProps {
-  onNavigate?: (section: string) => void;
-}
 
-export function Dashboard({ onNavigate }: DashboardProps) {
-  // ... código existente ...
-  
-  <QuickActions onNavigate={onNavigate} />
-}
-```
-
-**src/pages/Index.tsx:**
 ```tsx
-case "dashboard":
-  return <Dashboard onNavigate={setActiveSection} />;
+// Antes
+const totalContasReceber = accounts
+  .filter(a => a.status !== "pago")
+  .reduce((sum, a) => sum + (a.valor - a.valorPago), 0);
+
+// Depois
+const contasPendentes = accounts.filter(a => a.status !== "pago");
+const quantidadeContas = contasPendentes.length;
+const totalValorPendente = contasPendentes.reduce((sum, a) => sum + (a.valor - a.valorPago), 0);
+
+// Card atualizado
+<StatCard 
+  title="Contas a Receber" 
+  value={quantidadeContas}  // Agora mostra quantidade: "1", "2", etc.
+  subtitle={`R$ ${totalValorPendente.toLocaleString('pt-BR')} pendente`}  // Valor no subtítulo
+  icon={Receipt} 
+  variant="danger" 
+/>
 ```
 
 ### Resultado
-Após essa correção, ao clicar em "Novo Aparelho" no Dashboard, você será direcionado para a seção de Aparelhos Novos, e assim por diante para todas as ações rápidas.
+O dashboard vai mostrar:
+- **Contas a Receber: 1** (quantidade de contas)
+- **Subtítulo: R$ 500 pendente** (valor total)
