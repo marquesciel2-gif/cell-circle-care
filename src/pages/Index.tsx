@@ -15,7 +15,7 @@ const Index = () => {
   const renderContent = () => {
     switch (activeSection) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard onNavigate={setActiveSection} />;
       case "novos":
         return <InventoryTable title="Aparelhos Novos" type="novos" />;
       case "usados":
