@@ -4,7 +4,11 @@ import { QuickActions } from "./QuickActions";
 import { InventoryItem, Repair, Account } from "@/types";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 
-export function Dashboard() {
+interface DashboardProps {
+  onNavigate?: (section: string) => void;
+}
+
+export function Dashboard({ onNavigate }: DashboardProps) {
   const [novos] = useLocalStorage<InventoryItem[]>("inventory_novos", []);
   const [usados] = useLocalStorage<InventoryItem[]>("inventory_usados", []);
   const [acessorios] = useLocalStorage<InventoryItem[]>("inventory_acessorios", []);
@@ -96,7 +100,7 @@ export function Dashboard() {
 
       {/* Quick Actions */}
       <div className="max-w-md">
-        <QuickActions />
+        <QuickActions onNavigate={onNavigate} />
       </div>
     </div>
   );
