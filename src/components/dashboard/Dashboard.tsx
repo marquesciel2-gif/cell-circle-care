@@ -23,9 +23,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const consertosPendentes = repairs.filter(r => r.status === "pendente" || r.status === "em_andamento").length;
   const consertosProntos = repairs.filter(r => r.status === "pronto").length;
 
-  const totalContasReceber = accounts
-    .filter(a => a.status !== "pago")
-    .reduce((sum, a) => sum + (a.valor - a.valorPago), 0);
+  const contasPendentes = accounts.filter(a => a.status !== "pago");
+  const quantidadeContas = contasPendentes.length;
+  const totalValorPendente = contasPendentes.reduce((sum, a) => sum + (a.valor - a.valorPago), 0);
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -54,8 +54,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         />
         <StatCard 
           title="Contas a Receber" 
-          value={`R$ ${totalContasReceber.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`} 
-          subtitle="Total pendente" 
+          value={quantidadeContas} 
+          subtitle={`R$ ${totalValorPendente.toLocaleString('pt-BR')} pendente`} 
           icon={Receipt} 
           variant="danger" 
         />
