@@ -12,9 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { AddInventoryModal } from "@/components/modals/AddInventoryModal";
-import { InventoryItem } from "@/types";
+import { InventoryItem, Sale } from "@/types";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { toast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 interface InventoryTableProps {
   title: string;
@@ -55,6 +56,7 @@ export function InventoryTable({ title, type }: InventoryTableProps) {
     `inventory_${type}`,
     initialData[type] || []
   );
+  const [sales, setSales] = useLocalStorage<Sale[]>("sales", []);
 
   const filteredItems = inventory.filter(item => 
     item.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -78,20 +80,33 @@ export function InventoryTable({ title, type }: InventoryTableProps) {
     });
   };
 
-  const handleSell = (id: number) => {
-    setInventory(inventory.map(item => {
-      if (item.id === id) {
-        if (item.quantidade > 1) {
-          return { ...item, quantidade: item.quantidade - 1 };
+  const handleSell = (item: InventoryItem) => {
+    // Register the sale
+    const newSale: Sale = {
+      id: Date.now(),
+      itemId: item.id,
+      itemNome: item.nome,
+      tipo: item.tipo,
+      preco: item.preco,
+      dataVenda: format(new Date(), "dd/MM/yyyy"),
+    };
+    setSales([...sales, newSale]);
+
+    // Update inventory
+    setInventory(inventory.map(i => {
+      if (i.id === item.id) {
+        if (i.quantidade > 1) {
+          return { ...i, quantidade: i.quantidade - 1 };
         } else {
-          return { ...item, quantidade: 0, status: "vendido" as const };
+          return { ...i, quantidade: 0, status: "vendido" as const };
         }
       }
-      return item;
+      return i;
     }));
+
     toast({
       title: "Venda registrada!",
-      description: "O item foi marcado como vendido.",
+      description: `${item.nome} vendido por R$ ${item.preco.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
     });
   };
 
@@ -175,7 +190,7 @@ export function InventoryTable({ title, type }: InventoryTableProps) {
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8 text-success"
-                            onClick={() => handleSell(item.id)}
+                            onClick={() => handleSell(item)}
                             title="Vender"
                           >
                             <ShoppingCart className="h-4 w-4" />

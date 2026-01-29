@@ -41,3 +41,20 @@ export interface AppSettings {
   storePhone: string;
   storeAddress: string;
 }
+
+export interface Sale {
+  id: number;
+  itemId: number;
+  itemNome: string;
+  tipo: "novos" | "usados" | "acessorios";
+  preco: number;
+  dataVenda: string;
+  cliente?: string;
+}
+
+export interface Parcela {
+  numero: number;
+  valor: number;
+  dataVencimento: string;
+  paga: boolean;
+}

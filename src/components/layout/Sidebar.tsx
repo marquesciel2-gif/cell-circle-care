@@ -5,7 +5,8 @@ import {
   Wrench, 
   Receipt, 
   Settings,
-  Headphones
+  Headphones,
+  BarChart3
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const menuItems = [
   { id: "acessorios", label: "Acessórios", icon: Headphones },
   { id: "consertos", label: "Consertos", icon: Wrench },
   { id: "contas", label: "Contas a Receber", icon: Receipt },
+  { id: "relatorios", label: "Relatórios", icon: BarChart3 },
 ];
 
 export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
