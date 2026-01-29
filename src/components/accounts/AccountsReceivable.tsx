@@ -12,7 +12,8 @@ import {
   Edit,
   CreditCard,
   FileText,
-  Banknote
+  Banknote,
+  Printer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { AddAccountModal } from "@/components/modals/AddAccountModal";
 import { ReceivePaymentModal } from "@/components/modals/ReceivePaymentModal";
 import { EditAccountModal } from "@/components/modals/EditAccountModal";
+import { ReceiptModal } from "@/components/modals/ReceiptModal";
 import { Account } from "@/types";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { toast } from "@/hooks/use-toast";
@@ -69,6 +71,7 @@ export function AccountsReceivable() {
   const [modalOpen, setModalOpen] = useState(false);
   const [receiveModalOpen, setReceiveModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [accounts, setAccounts] = useLocalStorage<Account[]>("accounts", initialAccounts);
 
@@ -138,6 +141,11 @@ export function AccountsReceivable() {
   const openReceiveModal = (account: Account) => {
     setSelectedAccount(account);
     setReceiveModalOpen(true);
+  };
+
+  const openReceiptModal = (account: Account) => {
+    setSelectedAccount(account);
+    setReceiptModalOpen(true);
   };
 
   return (
@@ -261,6 +269,14 @@ export function AccountsReceivable() {
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => openReceiptModal(account)}
+                      title="Gerar Comprovante"
+                    >
+                      <Printer className="h-4 w-4" />
+                    </Button>
                     {account.status !== "pago" && (
                       <Button 
                         size="sm" 
@@ -303,6 +319,11 @@ export function AccountsReceivable() {
         onClose={() => setEditModalOpen(false)}
         account={selectedAccount}
         onSave={handleSaveEdit}
+      />
+      <ReceiptModal
+        open={receiptModalOpen}
+        onClose={() => setReceiptModalOpen(false)}
+        account={selectedAccount}
       />
     </div>
   );

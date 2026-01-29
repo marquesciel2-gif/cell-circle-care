@@ -6,6 +6,7 @@ import { InventoryTable } from "@/components/inventory/InventoryTable";
 import { RepairsSection } from "@/components/repairs/RepairsSection";
 import { AccountsReceivable } from "@/components/accounts/AccountsReceivable";
 import { SettingsSection } from "@/components/settings/SettingsSection";
+import { ReportsSection } from "@/components/reports/ReportsSection";
 import { cn } from "@/lib/utils";
 
 const Index = () => {
@@ -26,6 +27,8 @@ const Index = () => {
         return <RepairsSection />;
       case "contas":
         return <AccountsReceivable />;
+      case "relatorios":
+        return <ReportsSection />;
       case "configuracoes":
         return <SettingsSection />;
       default:
