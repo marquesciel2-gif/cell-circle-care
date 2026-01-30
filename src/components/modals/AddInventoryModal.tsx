@@ -8,7 +8,7 @@ interface AddInventoryModalProps {
   open: boolean;
   onClose: () => void;
   onAdd: (item: Omit<InventoryItem, "id">) => void;
-  type: "novos" | "usados" | "acessorios";
+  type: "novos" | "usados" | "acessorios" | "eletros";
 }
 
 export function AddInventoryModal({ open, onClose, onAdd, type }: AddInventoryModalProps) {
@@ -50,6 +50,7 @@ export function AddInventoryModal({ open, onClose, onAdd, type }: AddInventoryMo
       case "novos": return "Adicionar Aparelho Novo";
       case "usados": return "Adicionar Segunda Mão";
       case "acessorios": return "Adicionar Acessório";
+      case "eletros": return "Adicionar Móvel/Eletro";
     }
   };
 

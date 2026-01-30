@@ -7,7 +7,7 @@ export interface InventoryItem {
   quantidade: number;
   status: "disponivel" | "reservado" | "vendido";
   condicao: "novo" | "usado" | "seminovo";
-  tipo: "novos" | "usados" | "acessorios";
+  tipo: "novos" | "usados" | "acessorios" | "eletros";
 }
 
 export interface Repair {
@@ -46,7 +46,7 @@ export interface Sale {
   id: number;
   itemId: number;
   itemNome: string;
-  tipo: "novos" | "usados" | "acessorios";
+  tipo: "novos" | "usados" | "acessorios" | "eletros";
   preco: number;
   dataVenda: string;
   cliente?: string;

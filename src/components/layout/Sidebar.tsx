@@ -6,7 +6,8 @@ import {
   Receipt, 
   Settings,
   Headphones,
-  BarChart3
+  BarChart3,
+  Tv
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ const menuItems = [
   { id: "novos", label: "Aparelhos Novos", icon: Smartphone },
   { id: "usados", label: "Segunda Mão", icon: Package },
   { id: "acessorios", label: "Acessórios", icon: Headphones },
+  { id: "eletros", label: "Móveis e Eletros", icon: Tv },
   { id: "consertos", label: "Consertos", icon: Wrench },
   { id: "contas", label: "Contas a Receber", icon: Receipt },
   { id: "relatorios", label: "Relatórios", icon: BarChart3 },
