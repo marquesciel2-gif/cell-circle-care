@@ -19,7 +19,7 @@ import { format } from "date-fns";
 
 interface InventoryTableProps {
   title: string;
-  type: "novos" | "usados" | "acessorios";
+  type: "novos" | "usados" | "acessorios" | "eletros";
 }
 
 const initialData: Record<string, InventoryItem[]> = {
@@ -34,6 +34,10 @@ const initialData: Record<string, InventoryItem[]> = {
   acessorios: [
     { id: 5, nome: "Carregador Turbo 30W", marca: "Samsung", modelo: "USB-C", preco: 149, quantidade: 15, status: "disponivel", condicao: "novo", tipo: "acessorios" },
     { id: 6, nome: "Fone Bluetooth", marca: "JBL", modelo: "Tune 510", preco: 249, quantidade: 8, status: "disponivel", condicao: "novo", tipo: "acessorios" },
+  ],
+  eletros: [
+    { id: 7, nome: "Smart TV 50\"", marca: "Samsung", modelo: "Crystal UHD", preco: 2299, quantidade: 2, status: "disponivel", condicao: "novo", tipo: "eletros" },
+    { id: 8, nome: "Microondas 32L", marca: "Electrolux", modelo: "ME41S", preco: 549, quantidade: 3, status: "disponivel", condicao: "novo", tipo: "eletros" },
   ],
 };
 

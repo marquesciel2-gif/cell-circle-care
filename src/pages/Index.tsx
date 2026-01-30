@@ -23,6 +23,8 @@ const Index = () => {
         return <InventoryTable title="Segunda Mão" type="usados" />;
       case "acessorios":
         return <InventoryTable title="Acessórios" type="acessorios" />;
+      case "eletros":
+        return <InventoryTable title="Móveis e Eletros" type="eletros" />;
       case "consertos":
         return <RepairsSection />;
       case "contas":
