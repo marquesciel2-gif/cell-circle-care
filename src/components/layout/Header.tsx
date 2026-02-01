@@ -1,11 +1,20 @@
 import { Bell, Menu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import type { AppSettings } from "@/types";
 
 interface HeaderProps {
   onMenuClick: () => void;
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
+  const [settings] = useLocalStorage<AppSettings>("appSettings", {
+    theme: "dark",
+    storeName: "CellStore",
+    storePhone: "",
+    storeAddress: "",
+  });
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-6">
       <div className="flex items-center gap-4">
@@ -19,7 +28,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         </Button>
         <div>
           <p className="text-sm text-muted-foreground">Bem-vindo de volta!</p>
-          <h2 className="font-semibold text-foreground">CellStore</h2>
+          <h2 className="font-semibold text-foreground">{settings.storeName || "CellStore"}</h2>
         </div>
       </div>
 

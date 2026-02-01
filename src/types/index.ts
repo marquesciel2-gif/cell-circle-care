@@ -58,3 +58,13 @@ export interface Parcela {
   dataVencimento: string;
   paga: boolean;
 }
+
+export interface Cliente {
+  id: number;
+  nome: string;
+  telefone: string;
+  email?: string;
+  endereco?: string;
+  observacoes?: string;
+  dataCadastro: string;
+}
