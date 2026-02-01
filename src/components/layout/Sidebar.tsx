@@ -7,9 +7,12 @@ import {
   Settings,
   Headphones,
   BarChart3,
-  Tv
+  Tv,
+  Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import type { AppSettings } from "@/types";
 
 interface SidebarProps {
   activeSection: string;
@@ -22,12 +25,20 @@ const menuItems = [
   { id: "usados", label: "Segunda Mão", icon: Package },
   { id: "acessorios", label: "Acessórios", icon: Headphones },
   { id: "eletros", label: "Móveis e Eletros", icon: Tv },
+  { id: "clientes", label: "Clientes", icon: Users },
   { id: "consertos", label: "Consertos", icon: Wrench },
   { id: "contas", label: "Contas a Receber", icon: Receipt },
   { id: "relatorios", label: "Relatórios", icon: BarChart3 },
 ];
 
 export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
+  const [settings] = useLocalStorage<AppSettings>("appSettings", {
+    theme: "dark",
+    storeName: "CellStore",
+    storePhone: "",
+    storeAddress: "",
+  });
+
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar">
       <div className="flex h-full flex-col">
@@ -37,7 +48,7 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
             <Smartphone className="h-5 w-5 text-sidebar-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-sidebar-foreground">CellStore</h1>
+            <h1 className="text-lg font-bold text-sidebar-foreground">{settings.storeName || "CellStore"}</h1>
             <p className="text-xs text-sidebar-foreground/60">Sistema de Gestão</p>
           </div>
         </div>
