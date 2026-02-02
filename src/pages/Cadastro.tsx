@@ -10,20 +10,12 @@ import { Smartphone, Loader2 } from "lucide-react";
 
 export default function Cadastro() {
   const [nome, setNome] = useState("");
-  const [cpf, setCpf] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
-
-  const formatCpf = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 11);
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,9 +25,8 @@ export default function Cadastro() {
       return;
     }
     
-    const cleanCpf = cpf.replace(/\D/g, "");
-    if (cleanCpf.length !== 11) {
-      toast.error("CPF deve ter 11 dígitos");
+    if (!email.includes("@")) {
+      toast.error("Digite um e-mail válido");
       return;
     }
 
@@ -51,13 +42,13 @@ export default function Cadastro() {
 
     setLoading(true);
     try {
-      await signUp(cpf, password, nome.trim());
-      toast.success("Conta criada com sucesso!");
-      navigate("/");
+      await signUp(email, password, nome.trim());
+      toast.success("Conta criada! Verifique seu e-mail para confirmar.");
+      navigate("/login");
     } catch (error: any) {
       console.error("Signup error:", error);
-      if (error.message?.includes("duplicate")) {
-        toast.error("Este CPF já está cadastrado");
+      if (error.message?.includes("already registered")) {
+        toast.error("Este e-mail já está cadastrado");
       } else {
         toast.error("Erro ao criar conta");
       }
@@ -92,13 +83,13 @@ export default function Cadastro() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cpf">CPF</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
-                id="cpf"
-                type="text"
-                placeholder="000.000.000-00"
-                value={cpf}
-                onChange={(e) => setCpf(formatCpf(e.target.value))}
+                id="email"
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
