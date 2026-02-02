@@ -6,6 +6,8 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { AppSettings } from "@/types";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useUserRole } from "@/hooks/useUserRole";
+import { TeamSection } from "./TeamSection";
 
 const defaultSettings: AppSettings = {
   theme: "system",
@@ -16,6 +18,7 @@ const defaultSettings: AppSettings = {
 
 export function SettingsSection() {
   const { theme, setTheme } = useTheme();
+  const { isAdmin } = useUserRole();
   const [settings, setSettings] = useLocalStorage<AppSettings>("appSettings", defaultSettings);
   const [storeName, setStoreName] = useState(settings.storeName);
   const [storePhone, setStorePhone] = useState(settings.storePhone);
@@ -120,6 +123,9 @@ export function SettingsSection() {
           </Button>
         </div>
       </div>
+
+      {/* Equipe - apenas para admins */}
+      {isAdmin && <TeamSection />}
 
       {/* Informações */}
       <div className="rounded-xl border border-border bg-card p-6">
