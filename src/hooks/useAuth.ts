@@ -27,11 +27,7 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (cpf: string, password: string, nome: string) => {
-    // Format CPF as email for Supabase auth
-    const cleanCpf = cpf.replace(/\D/g, "");
-    const email = `${cleanCpf}@cpf.local`;
-
+  const signUp = async (email: string, password: string, nome: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -42,13 +38,12 @@ export function useAuth() {
 
     if (error) throw error;
 
-    // Create profile with CPF
+    // Create profile
     if (data.user) {
       const { error: profileError } = await supabase
         .from("profiles")
         .insert({
           user_id: data.user.id,
-          cpf: cleanCpf,
           nome,
         });
 
@@ -58,10 +53,7 @@ export function useAuth() {
     return data;
   };
 
-  const signIn = async (cpf: string, password: string) => {
-    const cleanCpf = cpf.replace(/\D/g, "");
-    const email = `${cleanCpf}@cpf.local`;
-
+  const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,

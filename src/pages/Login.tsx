@@ -9,26 +9,17 @@ import { toast } from "sonner";
 import { Smartphone, Loader2 } from "lucide-react";
 
 export default function Login() {
-  const [cpf, setCpf] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
-  const formatCpf = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 11);
-    if (digits.length <= 3) return digits;
-    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const cleanCpf = cpf.replace(/\D/g, "");
-    if (cleanCpf.length !== 11) {
-      toast.error("CPF deve ter 11 dígitos");
+    if (!email.includes("@")) {
+      toast.error("Digite um e-mail válido");
       return;
     }
 
@@ -39,13 +30,13 @@ export default function Login() {
 
     setLoading(true);
     try {
-      await signIn(cpf, password);
+      await signIn(email, password);
       toast.success("Login realizado com sucesso!");
       navigate("/");
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error(error.message === "Invalid login credentials" 
-        ? "CPF ou senha incorretos" 
+        ? "E-mail ou senha incorretos" 
         : "Erro ao fazer login");
     } finally {
       setLoading(false);
@@ -61,19 +52,19 @@ export default function Login() {
           </div>
           <CardTitle className="text-2xl">Entrar</CardTitle>
           <CardDescription>
-            Use seu CPF e senha para acessar
+            Use seu e-mail e senha para acessar
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="cpf">CPF</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
-                id="cpf"
-                type="text"
-                placeholder="000.000.000-00"
-                value={cpf}
-                onChange={(e) => setCpf(formatCpf(e.target.value))}
+                id="email"
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>

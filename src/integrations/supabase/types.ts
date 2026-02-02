@@ -16,7 +16,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
-          cpf: string
+          cpf: string | null
           created_at: string
           id: string
           nome: string
@@ -24,7 +24,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          cpf: string
+          cpf?: string | null
           created_at?: string
           id?: string
           nome: string
@@ -32,7 +32,7 @@ export type Database = {
           user_id: string
         }
         Update: {
-          cpf?: string
+          cpf?: string | null
           created_at?: string
           id?: string
           nome?: string
