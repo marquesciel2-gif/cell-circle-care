@@ -1,74 +1,64 @@
 
-# Plano: Adicionar "Lembrar Usuário" na Página de Login
+# Plano: Recuperar Contas a Receber
 
-## Resumo
+## Diagnóstico
 
-A página de login já está habilitada e funcional. Vou adicionar uma opção "Lembrar-me" que salva o e-mail do usuário para facilitar o próximo acesso.
+Os dados **não foram apagados**. Eles ainda estão no localStorage do seu navegador com a chave `"accounts"`. O problema é que:
 
-## O que será feito
+1. O sistema antigo salvava em **localStorage** (dados locais no navegador)
+2. Mudei o Dashboard para buscar do **banco de dados** (Supabase)
+3. O banco de dados está vazio porque nunca recebeu esses dados
 
-### Funcionalidade "Lembrar-me"
-- Adicionar um checkbox "Lembrar-me" abaixo do campo de senha
-- Quando marcado, o e-mail será salvo no navegador
-- Na próxima visita, o campo de e-mail será preenchido automaticamente
-- Se desmarcado, o e-mail salvo será removido
+## Solução
 
-## Experiência do Usuário
+Vou criar um mecanismo de migração automática que:
 
-1. **Primeiro acesso**: Usuário digita e-mail e senha, marca "Lembrar-me"
-2. **Próximo acesso**: O campo de e-mail já vem preenchido, basta digitar a senha
-3. **Desmarcar**: Se o usuário desmarcar a opção, o e-mail salvo é apagado
+1. Verifica se existem contas no localStorage
+2. Se existirem, migra automaticamente para o banco de dados
+3. Após migração bem-sucedida, limpa o localStorage antigo
 
----
+### Alterações
 
-## Detalhes Técnicos
+**Arquivo: `src/hooks/useAccounts.ts`**
+- Adicionar função `migrateFromLocalStorage()` que:
+  - Busca dados do localStorage com a chave `"accounts"`
+  - Converte para o formato do banco de dados
+  - Insere no Supabase
+  - Remove do localStorage após sucesso
 
-### Arquivo: `src/pages/Login.tsx`
+**Arquivo: `src/pages/Index.tsx` (ou componente raiz)**
+- Executar migração automaticamente uma vez ao carregar a aplicação
 
-**Alterações:**
-1. Importar o componente `Checkbox` do UI
-2. Adicionar estado `rememberMe` para controlar o checkbox
-3. Usar `useEffect` para carregar e-mail salvo do localStorage ao montar
-4. No submit, salvar ou remover o e-mail do localStorage conforme o checkbox
-5. Adicionar o checkbox entre o campo de senha e o botão de login
+## Resumo Técnico
 
-```tsx
-// Novos imports
-import { Checkbox } from "@/components/ui/checkbox";
-
-// Novos estados
-const [rememberMe, setRememberMe] = useState(false);
-
-// useEffect para carregar e-mail salvo
-useEffect(() => {
-  const savedEmail = localStorage.getItem("rememberedEmail");
-  if (savedEmail) {
-    setEmail(savedEmail);
-    setRememberMe(true);
+```typescript
+// Em useAccounts.ts - nova função
+const migrateFromLocalStorage = async () => {
+  const localAccounts = localStorage.getItem("accounts");
+  if (!localAccounts || !user) return;
+  
+  const accounts = JSON.parse(localAccounts);
+  if (accounts.length === 0) return;
+  
+  // Converter formato antigo para novo e inserir
+  for (const account of accounts) {
+    await supabase.from("accounts_receivable").insert({
+      client_name: account.cliente,
+      descricao: account.descricao,
+      valor_total: account.valor,
+      valor_pago: account.valorPago || 0,
+      parcelas: account.numeroParcelas || 1,
+      forma_pagamento: account.formaPagamento,
+      status: account.status,
+      vencimento: account.dataVencimento || null,
+      created_by: user.id,
+    });
   }
-}, []);
-
-// No handleSubmit, antes do signIn:
-if (rememberMe) {
-  localStorage.setItem("rememberedEmail", email);
-} else {
-  localStorage.removeItem("rememberedEmail");
-}
-
-// Novo elemento no formulário (após campo de senha):
-<div className="flex items-center space-x-2">
-  <Checkbox 
-    id="remember" 
-    checked={rememberMe}
-    onCheckedChange={(checked) => setRememberMe(checked === true)}
-  />
-  <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
-    Lembrar meu e-mail
-  </Label>
-</div>
+  
+  // Limpar localStorage após migração
+  localStorage.removeItem("accounts");
+  toast({ title: "Contas migradas com sucesso!" });
+};
 ```
 
-### Segurança
-- Apenas o e-mail é salvo (nunca a senha)
-- Os dados ficam no navegador do usuário (localStorage)
-- A sessão de autenticação já é gerenciada pelo sistema de forma segura
+Esta solução preserva todos os seus dados existentes e migra automaticamente para o banco de dados.
