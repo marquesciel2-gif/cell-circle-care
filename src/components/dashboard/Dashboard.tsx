@@ -1,19 +1,22 @@
-import { Smartphone, Package, Wrench, Receipt, Headphones } from "lucide-react";
+import { Smartphone, Package, Wrench, Receipt, Headphones, Loader2 } from "lucide-react";
 import { StatCard } from "./StatCard";
 import { QuickActions } from "./QuickActions";
-import { InventoryItem, Repair, Account } from "@/types";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useInventory } from "@/hooks/useInventory";
+import { useRepairs } from "@/hooks/useRepairs";
+import { useAccounts } from "@/hooks/useAccounts";
 
 interface DashboardProps {
   onNavigate?: (section: string) => void;
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {
-  const [novos] = useLocalStorage<InventoryItem[]>("inventory_novos", []);
-  const [usados] = useLocalStorage<InventoryItem[]>("inventory_usados", []);
-  const [acessorios] = useLocalStorage<InventoryItem[]>("inventory_acessorios", []);
-  const [repairs] = useLocalStorage<Repair[]>("repairs", []);
-  const [accounts] = useLocalStorage<Account[]>("accounts", []);
+  const { items: novos, loading: loadingNovos } = useInventory("novos");
+  const { items: usados, loading: loadingUsados } = useInventory("usados");
+  const { items: acessorios, loading: loadingAcessorios } = useInventory("acessorios");
+  const { repairs, loading: loadingRepairs } = useRepairs();
+  const { accounts, loading: loadingAccounts, totalPendente } = useAccounts();
+
+  const loading = loadingNovos || loadingUsados || loadingAcessorios || loadingRepairs || loadingAccounts;
 
   const totalNovos = novos.reduce((sum, item) => sum + item.quantidade, 0);
   const totalUsados = usados.reduce((sum, item) => sum + item.quantidade, 0);
@@ -25,7 +28,14 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   const contasPendentes = accounts.filter(a => a.status !== "pago");
   const quantidadeContas = contasPendentes.length;
-  const totalValorPendente = contasPendentes.reduce((sum, a) => sum + (a.valor - a.valorPago), 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -55,7 +65,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         <StatCard 
           title="Contas a Receber" 
           value={quantidadeContas} 
-          subtitle={`R$ ${totalValorPendente.toLocaleString('pt-BR')} pendente`} 
+          subtitle={`R$ ${totalPendente.toLocaleString('pt-BR')} pendente`} 
           icon={Receipt} 
           variant="danger" 
         />
