@@ -34,56 +34,6 @@ export function useAccounts() {
   const { user } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
-  const [migrationDone, setMigrationDone] = useState(false);
-
-  const migrateFromLocalStorage = async () => {
-    if (!user || migrationDone) return;
-    
-    const localAccountsStr = localStorage.getItem("accounts");
-    if (!localAccountsStr) {
-      setMigrationDone(true);
-      return;
-    }
-
-    try {
-      const localAccounts = JSON.parse(localAccountsStr);
-      if (!Array.isArray(localAccounts) || localAccounts.length === 0) {
-        localStorage.removeItem("accounts");
-        setMigrationDone(true);
-        return;
-      }
-
-      let migrated = 0;
-      for (const account of localAccounts) {
-        const { error } = await supabase.from("accounts_receivable").insert({
-          client_name: account.cliente || account.client_name || "Cliente",
-          descricao: account.descricao || "Sem descrição",
-          valor_total: account.valor || account.valor_total || 0,
-          valor_pago: account.valorPago || account.valor_pago || 0,
-          parcelas: account.numeroParcelas || account.parcelas || 1,
-          forma_pagamento: account.formaPagamento || account.forma_pagamento || "dinheiro",
-          status: account.status || "pendente",
-          vencimento: account.dataVencimento || account.vencimento || null,
-          created_by: user.id,
-        });
-
-        if (!error) migrated++;
-      }
-
-      localStorage.removeItem("accounts");
-      setMigrationDone(true);
-      
-      if (migrated > 0) {
-        toast({ 
-          title: "Dados migrados!", 
-          description: `${migrated} conta(s) recuperada(s) do armazenamento local.` 
-        });
-      }
-    } catch (error) {
-      console.error("Error migrating accounts:", error);
-      setMigrationDone(true);
-    }
-  };
 
   const fetchAccounts = async () => {
     if (!user) {
@@ -109,11 +59,7 @@ export function useAccounts() {
   };
 
   useEffect(() => {
-    const init = async () => {
-      await migrateFromLocalStorage();
-      await fetchAccounts();
-    };
-    init();
+    fetchAccounts();
   }, [user]);
 
   const getStatus = (valorTotal: number, valorPago: number): string => {

@@ -12,6 +12,7 @@ import { ClientsSection } from "@/components/clients/ClientsSection";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useMigrateLocalStorage } from "@/hooks/useMigrateLocalStorage";
 import { Loader2 } from "lucide-react";
 
 const Index = () => {
@@ -19,6 +20,7 @@ const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, isTecnico, isVendedor, loading: roleLoading } = useUserRole();
+  const { migrating } = useMigrateLocalStorage();
   const navigate = useNavigate();
 
   useEffect(() => {
