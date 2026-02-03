@@ -283,7 +283,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      inventory_public: {
+        Row: {
+          categoria: string | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          id: string | null
+          nome: string | null
+          preco_venda: number | null
+          quantidade: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string | null
+          nome?: string | null
+          preco_venda?: number | null
+          quantidade?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          id?: string | null
+          nome?: string | null
+          preco_venda?: number | null
+          quantidade?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
