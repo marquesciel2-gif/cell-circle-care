@@ -8,7 +8,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Printer, FileText } from "lucide-react";
 import { Account, AppSettings, Parcela } from "@/types";
-import { PaymentReceipt } from "@/components/reports/PaymentReceipt";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { addMonths, parse, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -62,10 +61,145 @@ export function ReceiptModal({ open, onClose, account }: ReceiptModalProps) {
 
   const parcelas = generateParcelas();
   const isPromissoria = account.formaPagamento === "promissoria" && parcelas.length > 0;
+  const dataEmissao = format(new Date(), "dd/MM/yyyy", { locale: ptBR });
+
+  const getFormaPagamentoLabel = () => {
+    if (account.formaPagamento === "promissoria") return "PROMISSÓRIA";
+    if (account.formaPagamento === "avista") return "À VISTA";
+    return "CARTÃO";
+  };
+
+  const generateReceiptHTML = (parcelaInfo?: Parcela) => `
+    <div style="
+      background-color: white;
+      color: black;
+      padding: 32px;
+      max-width: 400px;
+      margin: 0 auto;
+      border: 1px solid #d1d5db;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    ">
+      <!-- Header -->
+      <div style="
+        text-align: center;
+        border-bottom: 2px solid black;
+        padding-bottom: 16px;
+        margin-bottom: 16px;
+      ">
+        <h1 style="
+          font-size: 18px;
+          font-weight: bold;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          margin: 0;
+        ">
+          Comprovante de Pagamento
+        </h1>
+        <div style="
+          width: 96px;
+          height: 2px;
+          background-color: black;
+          margin: 8px auto 0;
+        "></div>
+      </div>
+
+      <!-- Store Info -->
+      <div style="
+        text-align: center;
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #9ca3af;
+      ">
+        <p style="font-weight: bold; font-size: 16px; margin: 0 0 4px;">${settings.storeName || "CellStore"}</p>
+        <p style="font-size: 13px; margin: 0 0 2px;">📞 ${settings.storePhone || "(00) 00000-0000"}</p>
+        <p style="font-size: 13px; margin: 0;">📍 ${settings.storeAddress || "Endereço não configurado"}</p>
+      </div>
+
+      <!-- Client Info -->
+      <div style="
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #9ca3af;
+      ">
+        <p style="margin: 0 0 4px;"><span style="font-weight: 600;">Cliente:</span> ${account.cliente}</p>
+        <p style="margin: 0;"><span style="font-weight: 600;">Telefone:</span> ${account.telefone}</p>
+      </div>
+
+      <!-- Description -->
+      <div style="
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #9ca3af;
+      ">
+        <p style="margin: 0 0 4px;"><span style="font-weight: 600;">Descrição:</span> ${account.descricao}</p>
+        <p style="margin: 0;">
+          <span style="font-weight: 600;">Forma de Pagamento:</span> ${getFormaPagamentoLabel()}
+        </p>
+      </div>
+
+      <!-- Valor Box -->
+      <div style="
+        background-color: #f3f4f6;
+        border: 2px solid black;
+        padding: 16px;
+        text-align: center;
+        margin-bottom: 16px;
+      ">
+        ${parcelaInfo ? `
+          <p style="font-weight: bold; font-size: 16px; text-transform: uppercase; margin: 0;">
+            Parcela ${parcelaInfo.numero} de ${account.numeroParcelas}
+          </p>
+          <p style="font-size: 24px; font-weight: bold; margin: 8px 0 0;">
+            R$ ${parcelaInfo.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </p>
+          <p style="font-size: 13px; margin: 4px 0 0;">
+            Vencimento: ${parcelaInfo.dataVencimento}
+          </p>
+        ` : `
+          <p style="font-weight: bold; font-size: 16px; text-transform: uppercase; margin: 0;">Valor Total</p>
+          <p style="font-size: 24px; font-weight: bold; margin: 8px 0 0;">
+            R$ ${account.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </p>
+        `}
+      </div>
+
+      <!-- Footer -->
+      <div style="text-align: center; font-size: 13px;">
+        <p style="margin: 0 0 16px;">Data de Emissão: ${dataEmissao}</p>
+        <div style="
+          padding-top: 32px;
+          border-top: 1px solid #9ca3af;
+          margin-top: 16px;
+        ">
+          <div style="
+            border-bottom: 1px solid black;
+            width: 192px;
+            margin: 0 auto 4px;
+          "></div>
+          <p style="font-size: 12px; margin: 0;">Assinatura</p>
+        </div>
+      </div>
+    </div>
+  `;
 
   const handlePrint = () => {
-    const printContent = receiptRef.current;
-    if (!printContent) return;
+    const parcelasToShow = selectedParcela === "all" 
+      ? parcelas 
+      : selectedParcela 
+        ? [parcelas.find(p => p.numero === selectedParcela)!]
+        : [undefined];
+
+    const receiptsHTML = parcelasToShow
+      .filter(Boolean)
+      .map((p, index) => `
+        ${index > 0 ? '<div style="page-break-before: always;"></div>' : ''}
+        ${generateReceiptHTML(p as Parcela | undefined)}
+      `)
+      .join('');
+
+    const finalHTML = selectedParcela ? receiptsHTML : generateReceiptHTML();
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
@@ -76,18 +210,30 @@ export function ReceiptModal({ open, onClose, account }: ReceiptModalProps) {
         <head>
           <title>Comprovante de Pagamento</title>
           <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            .receipt { max-width: 400px; margin: 0 auto; }
+            * { 
+              margin: 0; 
+              padding: 0; 
+              box-sizing: border-box; 
+            }
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 20px;
+              background: white;
+            }
             @media print {
-              body { padding: 0; }
-              .receipt { max-width: 100%; }
-              .page-break { page-break-before: always; }
+              body { 
+                padding: 0; 
+                margin: 0;
+              }
+              @page {
+                margin: 10mm;
+                size: auto;
+              }
             }
           </style>
         </head>
         <body>
-          ${printContent.innerHTML}
+          ${finalHTML}
         </body>
       </html>
     `);
@@ -97,7 +243,7 @@ export function ReceiptModal({ open, onClose, account }: ReceiptModalProps) {
     setTimeout(() => {
       printWindow.print();
       printWindow.close();
-    }, 250);
+    }, 300);
   };
 
   const getCurrentParcela = (): Parcela | undefined => {
@@ -106,6 +252,131 @@ export function ReceiptModal({ open, onClose, account }: ReceiptModalProps) {
     }
     return undefined;
   };
+
+  const currentParcela = getCurrentParcela();
+
+  // Preview component with same styles
+  const ReceiptPreview = ({ parcelaInfo }: { parcelaInfo?: Parcela }) => (
+    <div 
+      ref={receiptRef}
+      style={{
+        backgroundColor: "white",
+        color: "black",
+        padding: "32px",
+        maxWidth: "400px",
+        margin: "0 auto",
+        border: "1px solid #d1d5db",
+        fontFamily: "Arial, sans-serif",
+        fontSize: "14px",
+        lineHeight: 1.5,
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        textAlign: "center",
+        borderBottom: "2px solid black",
+        paddingBottom: "16px",
+        marginBottom: "16px",
+      }}>
+        <h1 style={{
+          fontSize: "18px",
+          fontWeight: "bold",
+          textTransform: "uppercase",
+          letterSpacing: "2px",
+          margin: 0,
+        }}>
+          Comprovante de Pagamento
+        </h1>
+        <div style={{
+          width: "96px",
+          height: "2px",
+          backgroundColor: "black",
+          margin: "8px auto 0",
+        }} />
+      </div>
+
+      {/* Store Info */}
+      <div style={{
+        textAlign: "center",
+        marginBottom: "16px",
+        paddingBottom: "16px",
+        borderBottom: "1px solid #9ca3af",
+      }}>
+        <p style={{ fontWeight: "bold", fontSize: "16px", margin: "0 0 4px" }}>{settings.storeName || "CellStore"}</p>
+        <p style={{ fontSize: "13px", margin: "0 0 2px" }}>📞 {settings.storePhone || "(00) 00000-0000"}</p>
+        <p style={{ fontSize: "13px", margin: 0 }}>📍 {settings.storeAddress || "Endereço não configurado"}</p>
+      </div>
+
+      {/* Client Info */}
+      <div style={{
+        marginBottom: "16px",
+        paddingBottom: "16px",
+        borderBottom: "1px solid #9ca3af",
+      }}>
+        <p style={{ margin: "0 0 4px" }}><span style={{ fontWeight: 600 }}>Cliente:</span> {account.cliente}</p>
+        <p style={{ margin: 0 }}><span style={{ fontWeight: 600 }}>Telefone:</span> {account.telefone}</p>
+      </div>
+
+      {/* Description */}
+      <div style={{
+        marginBottom: "16px",
+        paddingBottom: "16px",
+        borderBottom: "1px solid #9ca3af",
+      }}>
+        <p style={{ margin: "0 0 4px" }}><span style={{ fontWeight: 600 }}>Descrição:</span> {account.descricao}</p>
+        <p style={{ margin: 0 }}>
+          <span style={{ fontWeight: 600 }}>Forma de Pagamento:</span> {getFormaPagamentoLabel()}
+        </p>
+      </div>
+
+      {/* Valor Box */}
+      <div style={{
+        backgroundColor: "#f3f4f6",
+        border: "2px solid black",
+        padding: "16px",
+        textAlign: "center",
+        marginBottom: "16px",
+      }}>
+        {parcelaInfo ? (
+          <>
+            <p style={{ fontWeight: "bold", fontSize: "16px", textTransform: "uppercase", margin: 0 }}>
+              Parcela {parcelaInfo.numero} de {account.numeroParcelas}
+            </p>
+            <p style={{ fontSize: "24px", fontWeight: "bold", margin: "8px 0 0" }}>
+              R$ {parcelaInfo.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </p>
+            <p style={{ fontSize: "13px", margin: "4px 0 0" }}>
+              Vencimento: {parcelaInfo.dataVencimento}
+            </p>
+          </>
+        ) : (
+          <>
+            <p style={{ fontWeight: "bold", fontSize: "16px", textTransform: "uppercase", margin: 0 }}>Valor Total</p>
+            <p style={{ fontSize: "24px", fontWeight: "bold", margin: "8px 0 0" }}>
+              R$ {account.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </p>
+          </>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div style={{ textAlign: "center", fontSize: "13px" }}>
+        <p style={{ margin: "0 0 16px" }}>Data de Emissão: {dataEmissao}</p>
+        <div style={{
+          paddingTop: "32px",
+          borderTop: "1px solid #9ca3af",
+          marginTop: "16px",
+        }}>
+          <div style={{
+            borderBottom: "1px solid black",
+            width: "192px",
+            margin: "0 auto 4px",
+          }} />
+          <p style={{ fontSize: "12px", margin: 0 }}>Assinatura</p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -146,14 +417,16 @@ export function ReceiptModal({ open, onClose, account }: ReceiptModalProps) {
         )}
 
         {/* Receipt Preview */}
-        <div className="border rounded-lg p-4 bg-white">
-          <PaymentReceipt
-            ref={receiptRef}
-            account={account}
-            settings={settings}
-            parcela={getCurrentParcela()}
-            showAllParcelas={selectedParcela === "all"}
-          />
+        <div className="border rounded-lg p-4 bg-white overflow-auto">
+          {selectedParcela === "all" && parcelas.length > 0 ? (
+            <div className="space-y-8">
+              {parcelas.map((p) => (
+                <ReceiptPreview key={p.numero} parcelaInfo={p} />
+              ))}
+            </div>
+          ) : (
+            <ReceiptPreview parcelaInfo={currentParcela} />
+          )}
         </div>
 
         {/* Actions */}
