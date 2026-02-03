@@ -68,6 +68,13 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "accounts_receivable_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_limited"
+            referencedColumns: ["id"]
+          },
         ]
       }
       clients: {
@@ -258,6 +265,13 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "repairs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_limited"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {
@@ -283,44 +297,63 @@ export type Database = {
       }
     }
     Views: {
-      inventory_public: {
+      clients_limited: {
         Row: {
-          categoria: string | null
           created_at: string | null
           created_by: string | null
-          descricao: string | null
           id: string | null
           nome: string | null
-          preco_venda: number | null
-          quantidade: number | null
+          telefone: string | null
           updated_at: string | null
         }
         Insert: {
-          categoria?: string | null
           created_at?: string | null
           created_by?: string | null
-          descricao?: string | null
           id?: string | null
           nome?: string | null
-          preco_venda?: number | null
-          quantidade?: number | null
+          telefone?: string | null
           updated_at?: string | null
         }
         Update: {
-          categoria?: string | null
           created_at?: string | null
           created_by?: string | null
-          descricao?: string | null
           id?: string | null
           nome?: string | null
-          preco_venda?: number | null
-          quantidade?: number | null
+          telefone?: string | null
           updated_at?: string | null
         }
         Relationships: []
       }
     }
     Functions: {
+      get_clients_for_user: {
+        Args: never
+        Returns: {
+          created_at: string
+          created_by: string
+          email: string
+          endereco: string
+          id: string
+          nome: string
+          telefone: string
+          updated_at: string
+        }[]
+      }
+      get_inventory_for_user: {
+        Args: never
+        Returns: {
+          categoria: string
+          created_at: string
+          created_by: string
+          descricao: string
+          id: string
+          nome: string
+          preco_custo: number
+          preco_venda: number
+          quantidade: number
+          updated_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

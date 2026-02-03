@@ -34,13 +34,11 @@ export function useClients() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*")
-        .order("created_at", { ascending: false });
+      // Usar função segura que retorna dados baseado no papel do usuário
+      const { data, error } = await supabase.rpc("get_clients_for_user");
 
       if (error) throw error;
-      setClients(data || []);
+      setClients((data as Client[]) || []);
     } catch (error: any) {
       console.error("Error fetching clients:", error);
       toast.error("Erro ao carregar clientes");

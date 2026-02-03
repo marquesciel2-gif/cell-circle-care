@@ -38,19 +38,17 @@ export function useInventory(categoria?: string) {
     }
 
     try {
-      let query = supabase
-        .from("inventory")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (categoria) {
-        query = query.eq("categoria", categoria);
-      }
-
-      const { data, error } = await query;
+      // Usar função segura que retorna dados baseado no papel do usuário
+      const { data, error } = await supabase.rpc("get_inventory_for_user");
 
       if (error) throw error;
-      setItems(data || []);
+      
+      let filteredData = (data as InventoryItem[]) || [];
+      if (categoria) {
+        filteredData = filteredData.filter(item => item.categoria === categoria);
+      }
+      
+      setItems(filteredData);
     } catch (error: any) {
       console.error("Error fetching inventory:", error);
       toast({ title: "Erro ao carregar estoque", variant: "destructive" });
