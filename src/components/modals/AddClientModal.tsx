@@ -8,13 +8,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import type { Cliente } from "@/types";
+import { ClientInput } from "@/hooks/useClients";
 
 interface AddClientModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (client: Omit<Cliente, "id" | "dataCadastro">) => void;
+  onAdd: (client: ClientInput) => void;
 }
 
 export function AddClientModal({ open, onOpenChange, onAdd }: AddClientModalProps) {
@@ -23,19 +22,17 @@ export function AddClientModal({ open, onOpenChange, onAdd }: AddClientModalProp
     telefone: "",
     email: "",
     endereco: "",
-    observacoes: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.nome || !formData.telefone) return;
+    if (!formData.nome) return;
 
     onAdd({
       nome: formData.nome,
-      telefone: formData.telefone,
+      telefone: formData.telefone || undefined,
       email: formData.email || undefined,
       endereco: formData.endereco || undefined,
-      observacoes: formData.observacoes || undefined,
     });
 
     setFormData({
@@ -43,7 +40,6 @@ export function AddClientModal({ open, onOpenChange, onAdd }: AddClientModalProp
       telefone: "",
       email: "",
       endereco: "",
-      observacoes: "",
     });
   };
 
@@ -66,13 +62,12 @@ export function AddClientModal({ open, onOpenChange, onAdd }: AddClientModalProp
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="telefone">Telefone *</Label>
+            <Label htmlFor="telefone">Telefone</Label>
             <Input
               id="telefone"
               value={formData.telefone}
               onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
               placeholder="(00) 00000-0000"
-              required
             />
           </div>
 
@@ -94,17 +89,6 @@ export function AddClientModal({ open, onOpenChange, onAdd }: AddClientModalProp
               value={formData.endereco}
               onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
               placeholder="Rua, número, bairro"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="observacoes">Observações</Label>
-            <Textarea
-              id="observacoes"
-              value={formData.observacoes}
-              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-              placeholder="Observações sobre o cliente"
-              rows={3}
             />
           </div>
 

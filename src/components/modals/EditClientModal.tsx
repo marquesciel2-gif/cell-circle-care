@@ -8,14 +8,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import type { Cliente } from "@/types";
+import { Client, ClientInput } from "@/hooks/useClients";
 
 interface EditClientModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  client: Cliente;
-  onSave: (client: Cliente) => void;
+  client: Client;
+  onSave: (client: ClientInput) => void;
 }
 
 export function EditClientModal({ open, onOpenChange, client, onSave }: EditClientModalProps) {
@@ -24,32 +23,28 @@ export function EditClientModal({ open, onOpenChange, client, onSave }: EditClie
     telefone: "",
     email: "",
     endereco: "",
-    observacoes: "",
   });
 
   useEffect(() => {
     if (client) {
       setFormData({
         nome: client.nome,
-        telefone: client.telefone,
+        telefone: client.telefone || "",
         email: client.email || "",
         endereco: client.endereco || "",
-        observacoes: client.observacoes || "",
       });
     }
   }, [client]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.nome || !formData.telefone) return;
+    if (!formData.nome) return;
 
     onSave({
-      ...client,
       nome: formData.nome,
-      telefone: formData.telefone,
+      telefone: formData.telefone || undefined,
       email: formData.email || undefined,
       endereco: formData.endereco || undefined,
-      observacoes: formData.observacoes || undefined,
     });
   };
 
@@ -72,13 +67,12 @@ export function EditClientModal({ open, onOpenChange, client, onSave }: EditClie
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-telefone">Telefone *</Label>
+            <Label htmlFor="edit-telefone">Telefone</Label>
             <Input
               id="edit-telefone"
               value={formData.telefone}
               onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
               placeholder="(00) 00000-0000"
-              required
             />
           </div>
 
@@ -100,17 +94,6 @@ export function EditClientModal({ open, onOpenChange, client, onSave }: EditClie
               value={formData.endereco}
               onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
               placeholder="Rua, número, bairro"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit-observacoes">Observações</Label>
-            <Textarea
-              id="edit-observacoes"
-              value={formData.observacoes}
-              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-              placeholder="Observações sobre o cliente"
-              rows={3}
             />
           </div>
 
