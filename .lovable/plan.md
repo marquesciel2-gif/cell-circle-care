@@ -1,113 +1,74 @@
 
+# Plano: Adicionar "Lembrar Usuário" na Página de Login
 
-## Corrigir Configurações e Adicionar Cadastro de Clientes
+## Resumo
 
-### Problema Identificado: Configurações Não Aplicadas
+A página de login já está habilitada e funcional. Vou adicionar uma opção "Lembrar-me" que salva o e-mail do usuário para facilitar o próximo acesso.
 
-As configurações salvas (nome da loja, telefone, endereço) não estão sendo utilizadas em todos os lugares:
+## O que será feito
 
-| Local | Status Atual |
-|-------|--------------|
-| Header.tsx | Fixo "CellStore" |
-| Sidebar.tsx | Fixo "CellStore" |
-| PaymentReceipt.tsx | Usa configurações |
-| ReceiptModal.tsx | Usa configurações |
+### Funcionalidade "Lembrar-me"
+- Adicionar um checkbox "Lembrar-me" abaixo do campo de senha
+- Quando marcado, o e-mail será salvo no navegador
+- Na próxima visita, o campo de e-mail será preenchido automaticamente
+- Se desmarcado, o e-mail salvo será removido
 
----
+## Experiência do Usuário
 
-### Solução para Configurações
-
-#### 1. Atualizar Header.tsx
-- Importar `useLocalStorage` e `AppSettings`
-- Buscar configurações do localStorage
-- Exibir o nome da loja configurado ao invés de "CellStore" fixo
-
-#### 2. Atualizar Sidebar.tsx
-- Importar `useLocalStorage` e `AppSettings`
-- Buscar configurações do localStorage
-- Exibir o nome da loja configurado no topo do menu
+1. **Primeiro acesso**: Usuário digita e-mail e senha, marca "Lembrar-me"
+2. **Próximo acesso**: O campo de e-mail já vem preenchido, basta digitar a senha
+3. **Desmarcar**: Se o usuário desmarcar a opção, o e-mail salvo é apagado
 
 ---
 
-### Nova Funcionalidade: Cadastro de Clientes
+## Detalhes Técnicos
 
-#### Novo Tipo: Cliente
-```typescript
-export interface Cliente {
-  id: number;
-  nome: string;
-  telefone: string;
-  email?: string;
-  endereco?: string;
-  observacoes?: string;
-  dataCadastro: string;
+### Arquivo: `src/pages/Login.tsx`
+
+**Alterações:**
+1. Importar o componente `Checkbox` do UI
+2. Adicionar estado `rememberMe` para controlar o checkbox
+3. Usar `useEffect` para carregar e-mail salvo do localStorage ao montar
+4. No submit, salvar ou remover o e-mail do localStorage conforme o checkbox
+5. Adicionar o checkbox entre o campo de senha e o botão de login
+
+```tsx
+// Novos imports
+import { Checkbox } from "@/components/ui/checkbox";
+
+// Novos estados
+const [rememberMe, setRememberMe] = useState(false);
+
+// useEffect para carregar e-mail salvo
+useEffect(() => {
+  const savedEmail = localStorage.getItem("rememberedEmail");
+  if (savedEmail) {
+    setEmail(savedEmail);
+    setRememberMe(true);
+  }
+}, []);
+
+// No handleSubmit, antes do signIn:
+if (rememberMe) {
+  localStorage.setItem("rememberedEmail", email);
+} else {
+  localStorage.removeItem("rememberedEmail");
 }
+
+// Novo elemento no formulário (após campo de senha):
+<div className="flex items-center space-x-2">
+  <Checkbox 
+    id="remember" 
+    checked={rememberMe}
+    onCheckedChange={(checked) => setRememberMe(checked === true)}
+  />
+  <Label htmlFor="remember" className="text-sm font-normal cursor-pointer">
+    Lembrar meu e-mail
+  </Label>
+</div>
 ```
 
-#### Arquivos a Criar
-
-| Arquivo | Descrição |
-|---------|-----------|
-| `src/components/clients/ClientsSection.tsx` | Página principal de clientes |
-| `src/components/modals/AddClientModal.tsx` | Modal para adicionar cliente |
-| `src/components/modals/EditClientModal.tsx` | Modal para editar cliente |
-
-#### Funcionalidades da Seção de Clientes
-- Lista de clientes cadastrados
-- Busca por nome ou telefone
-- Adicionar novo cliente
-- Editar dados do cliente
-- Excluir cliente
-- Total de clientes cadastrados
-
----
-
-### Interface do Usuário
-
-**Tela de Clientes:**
-```text
-┌─────────────────────────────────────────────────────────┐
-│  👥 Clientes                    [+ Novo Cliente]        │
-├─────────────────────────────────────────────────────────┤
-│  🔍 [Buscar por nome ou telefone...               ]     │
-│                                                         │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │ 👤 João Silva                                      │ │
-│  │    📞 (11) 99999-1234  |  📧 joao@email.com       │ │
-│  │    📍 Rua das Flores, 123                         │ │
-│  │    📅 Cadastrado em: 29/01/2026                   │ │
-│  │                              [✏️] [🗑️]           │ │
-│  └────────────────────────────────────────────────────┘ │
-│                                                         │
-│  ┌────────────────────────────────────────────────────┐ │
-│  │ 👤 Maria Santos                                    │ │
-│  │    📞 (11) 98888-5678  |  📧 maria@email.com      │ │
-│  │    📍 Av. Brasil, 456                             │ │
-│  └────────────────────────────────────────────────────┘ │
-│                                                         │
-│  Total: 2 clientes cadastrados                          │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-### Navegação
-
-Adicionar nova entrada no Sidebar:
-- Ícone: `Users` do lucide-react
-- Label: "Clientes"
-- Posição: Entre "Móveis e Eletros" e "Consertos"
-
----
-
-### Ordem de Implementação
-
-1. **Corrigir Header.tsx** - Usar nome da loja das configurações
-2. **Corrigir Sidebar.tsx** - Usar nome da loja das configurações
-3. **Criar tipo Cliente** em `src/types/index.ts`
-4. **Criar ClientsSection.tsx** - Lista de clientes
-5. **Criar AddClientModal.tsx** - Formulário de cadastro
-6. **Criar EditClientModal.tsx** - Formulário de edição
-7. **Atualizar Sidebar.tsx** - Adicionar link para Clientes
-8. **Atualizar Index.tsx** - Renderizar seção de Clientes
-
+### Segurança
+- Apenas o e-mail é salvo (nunca a senha)
+- Os dados ficam no navegador do usuário (localStorage)
+- A sessão de autenticação já é gerenciada pelo sistema de forma segura
