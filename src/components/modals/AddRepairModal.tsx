@@ -1,44 +1,32 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Repair } from "@/types";
 
 interface AddRepairModalProps {
   open: boolean;
   onClose: () => void;
-  onAdd: (repair: Omit<Repair, "id" | "status">) => void;
+  onAdd: (repair: { client_name: string; device: string; problem: string }) => void;
 }
 
 export function AddRepairModal({ open, onClose, onAdd }: AddRepairModalProps) {
-  const [aparelho, setAparelho] = useState("");
-  const [cliente, setCliente] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [problema, setProblema] = useState("");
-  const [previsao, setPrevisao] = useState("");
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("pt-BR");
-  };
+  const [device, setDevice] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [problem, setProblem] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!aparelho || !cliente || !telefone || !problema) return;
+    if (!device || !clientName || !problem) return;
 
     onAdd({
-      aparelho,
-      cliente,
-      telefone,
-      problema,
-      dataEntrada: formatDate(new Date()),
-      previsao: previsao || formatDate(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)),
+      device,
+      client_name: clientName,
+      problem,
     });
 
     // Reset form
-    setAparelho("");
-    setCliente("");
-    setTelefone("");
-    setProblema("");
-    setPrevisao("");
+    setDevice("");
+    setClientName("");
+    setProblem("");
     onClose();
   };
 
@@ -53,8 +41,8 @@ export function AddRepairModal({ open, onClose, onAdd }: AddRepairModalProps) {
             <label className="text-sm font-medium text-foreground">Aparelho *</label>
             <input
               type="text"
-              value={aparelho}
-              onChange={(e) => setAparelho(e.target.value)}
+              value={device}
+              onChange={(e) => setDevice(e.target.value)}
               placeholder="Ex: iPhone 12 - Tela quebrada"
               className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               required
@@ -64,44 +52,22 @@ export function AddRepairModal({ open, onClose, onAdd }: AddRepairModalProps) {
             <label className="text-sm font-medium text-foreground">Problema / Serviço *</label>
             <input
               type="text"
-              value={problema}
-              onChange={(e) => setProblema(e.target.value)}
+              value={problem}
+              onChange={(e) => setProblem(e.target.value)}
               placeholder="Ex: Troca de tela"
               className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-foreground">Cliente *</label>
-              <input
-                type="text"
-                value={cliente}
-                onChange={(e) => setCliente(e.target.value)}
-                placeholder="Nome do cliente"
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Telefone *</label>
-              <input
-                type="tel"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
-                placeholder="(00) 00000-0000"
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                required
-              />
-            </div>
-          </div>
           <div>
-            <label className="text-sm font-medium text-foreground">Previsão de Entrega</label>
+            <label className="text-sm font-medium text-foreground">Cliente *</label>
             <input
-              type="date"
-              value={previsao}
-              onChange={(e) => setPrevisao(e.target.value)}
+              type="text"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              placeholder="Nome do cliente"
               className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              required
             />
           </div>
           <p className="text-xs text-muted-foreground">

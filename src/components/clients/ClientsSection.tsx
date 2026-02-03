@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { Plus, Search, User, Phone, Mail, MapPin, Calendar, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, User, Phone, Mail, MapPin, Calendar, Edit, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useClients, Client, ClientInput } from "@/hooks/useClients";
 import { AddClientModal } from "@/components/modals/AddClientModal";
 import { EditClientModal } from "@/components/modals/EditClientModal";
-import type { Cliente } from "@/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -20,43 +19,40 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
 
 export function ClientsSection() {
-  const [clients, setClients] = useLocalStorage<Cliente[]>("clients", []);
+  const { clients, loading, addClient, updateClient, deleteClient } = useClients();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingClient, setEditingClient] = useState<Cliente | null>(null);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   const filteredClients = clients.filter(
     (client) =>
       client.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.telefone.includes(searchTerm)
+      (client.telefone && client.telefone.includes(searchTerm))
   );
 
-  const handleAddClient = (newClient: Omit<Cliente, "id" | "dataCadastro">) => {
-    const client: Cliente = {
-      ...newClient,
-      id: Date.now(),
-      dataCadastro: new Date().toISOString().split("T")[0],
-    };
-    setClients([...clients, client]);
+  const handleAddClient = async (newClient: ClientInput) => {
+    await addClient(newClient);
     setIsAddModalOpen(false);
-    toast.success("Cliente cadastrado com sucesso!");
   };
 
-  const handleEditClient = (updatedClient: Cliente) => {
-    setClients(
-      clients.map((c) => (c.id === updatedClient.id ? updatedClient : c))
-    );
+  const handleEditClient = async (id: string, updatedClient: ClientInput) => {
+    await updateClient(id, updatedClient);
     setEditingClient(null);
-    toast.success("Cliente atualizado com sucesso!");
   };
 
-  const handleDeleteClient = (id: number) => {
-    setClients(clients.filter((c) => c.id !== id));
-    toast.success("Cliente excluído com sucesso!");
+  const handleDeleteClient = async (id: string) => {
+    await deleteClient(id);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -115,10 +111,12 @@ export function ClientsSection() {
                     </div>
 
                     <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4" />
-                        <span>{client.telefone}</span>
-                      </div>
+                      {client.telefone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4" />
+                          <span>{client.telefone}</span>
+                        </div>
+                      )}
 
                       {client.email && (
                         <div className="flex items-center gap-2">
@@ -138,18 +136,12 @@ export function ClientsSection() {
                         <Calendar className="h-4 w-4" />
                         <span>
                           Cadastrado em:{" "}
-                          {format(new Date(client.dataCadastro), "dd/MM/yyyy", {
+                          {format(new Date(client.created_at), "dd/MM/yyyy", {
                             locale: ptBR,
                           })}
                         </span>
                       </div>
                     </div>
-
-                    {client.observacoes && (
-                      <p className="text-sm italic text-muted-foreground">
-                        "{client.observacoes}"
-                      </p>
-                    )}
                   </div>
 
                   <div className="flex gap-2">
@@ -210,7 +202,7 @@ export function ClientsSection() {
           open={!!editingClient}
           onOpenChange={(open) => !open && setEditingClient(null)}
           client={editingClient}
-          onSave={handleEditClient}
+          onSave={(data) => handleEditClient(editingClient.id, data)}
         />
       )}
     </div>

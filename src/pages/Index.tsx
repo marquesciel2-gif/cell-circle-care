@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Dashboard } from "@/components/dashboard/Dashboard";
@@ -9,15 +10,66 @@ import { SettingsSection } from "@/components/settings/SettingsSection";
 import { ReportsSection } from "@/components/reports/ReportsSection";
 import { ClientsSection } from "@/components/clients/ClientsSection";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Loader2 } from "lucide-react";
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const { isAdmin, isTecnico, isVendedor, loading: roleLoading } = useUserRole();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/login");
+    }
+  }, [user, authLoading, navigate]);
+
+  const hasAccess = (section: string): boolean => {
+    if (isAdmin) return true;
+
+    const accessMap: Record<string, ("admin" | "tecnico" | "vendedor")[]> = {
+      dashboard: ["admin", "tecnico", "vendedor"],
+      novos: ["admin", "vendedor"],
+      usados: ["admin", "vendedor"],
+      acessorios: ["admin", "vendedor"],
+      eletros: ["admin", "vendedor"],
+      clientes: ["admin", "tecnico", "vendedor"],
+      consertos: ["admin", "tecnico"],
+      contas: ["admin", "vendedor"],
+      relatorios: ["admin"],
+      configuracoes: ["admin", "tecnico", "vendedor"],
+    };
+
+    const allowedRoles = accessMap[section] || [];
+    if (isTecnico && allowedRoles.includes("tecnico")) return true;
+    if (isVendedor && allowedRoles.includes("vendedor")) return true;
+    return false;
+  };
+
+  const handleSectionChange = (section: string) => {
+    if (hasAccess(section)) {
+      setActiveSection(section);
+      setSidebarOpen(false);
+    }
+  };
 
   const renderContent = () => {
+    if (!hasAccess(activeSection)) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <p className="text-lg font-medium text-muted-foreground">
+            Você não tem permissão para acessar esta seção.
+          </p>
+        </div>
+      );
+    }
+
     switch (activeSection) {
       case "dashboard":
-        return <Dashboard onNavigate={setActiveSection} />;
+        return <Dashboard onNavigate={handleSectionChange} />;
       case "novos":
         return <InventoryTable title="Aparelhos Novos" type="novos" />;
       case "usados":
@@ -37,9 +89,21 @@ const Index = () => {
       case "configuracoes":
         return <SettingsSection />;
       default:
-        return <Dashboard />;
+        return <Dashboard onNavigate={handleSectionChange} />;
     }
   };
+
+  if (authLoading || roleLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,10 +122,7 @@ const Index = () => {
       )}>
         <Sidebar 
           activeSection={activeSection} 
-          onSectionChange={(section) => {
-            setActiveSection(section);
-            setSidebarOpen(false);
-          }} 
+          onSectionChange={handleSectionChange}
         />
       </div>
 

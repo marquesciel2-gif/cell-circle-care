@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useUserRole } from "@/hooks/useUserRole";
 import type { AppSettings } from "@/types";
 
 interface SidebarProps {
@@ -19,16 +20,23 @@ interface SidebarProps {
   onSectionChange: (section: string) => void;
 }
 
-const menuItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "novos", label: "Aparelhos Novos", icon: Smartphone },
-  { id: "usados", label: "Segunda Mão", icon: Package },
-  { id: "acessorios", label: "Acessórios", icon: Headphones },
-  { id: "eletros", label: "Móveis e Eletros", icon: Tv },
-  { id: "clientes", label: "Clientes", icon: Users },
-  { id: "consertos", label: "Consertos", icon: Wrench },
-  { id: "contas", label: "Contas a Receber", icon: Receipt },
-  { id: "relatorios", label: "Relatórios", icon: BarChart3 },
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: any;
+  roles: ("admin" | "tecnico" | "vendedor")[];
+}
+
+const menuItems: MenuItem[] = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "tecnico", "vendedor"] },
+  { id: "novos", label: "Aparelhos Novos", icon: Smartphone, roles: ["admin", "vendedor"] },
+  { id: "usados", label: "Segunda Mão", icon: Package, roles: ["admin", "vendedor"] },
+  { id: "acessorios", label: "Acessórios", icon: Headphones, roles: ["admin", "vendedor"] },
+  { id: "eletros", label: "Móveis e Eletros", icon: Tv, roles: ["admin", "vendedor"] },
+  { id: "clientes", label: "Clientes", icon: Users, roles: ["admin", "tecnico", "vendedor"] },
+  { id: "consertos", label: "Consertos", icon: Wrench, roles: ["admin", "tecnico"] },
+  { id: "contas", label: "Contas a Receber", icon: Receipt, roles: ["admin", "vendedor"] },
+  { id: "relatorios", label: "Relatórios", icon: BarChart3, roles: ["admin"] },
 ];
 
 export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
@@ -38,6 +46,17 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
     storePhone: "",
     storeAddress: "",
   });
+
+  const { isAdmin, isTecnico, isVendedor, loading } = useUserRole();
+
+  const hasAccess = (roles: ("admin" | "tecnico" | "vendedor")[]) => {
+    if (isAdmin) return true;
+    if (isTecnico && roles.includes("tecnico")) return true;
+    if (isVendedor && roles.includes("vendedor")) return true;
+    return false;
+  };
+
+  const visibleItems = menuItems.filter(item => hasAccess(item.roles));
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar">
@@ -55,7 +74,7 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 p-4">
-          {menuItems.map((item) => {
+          {visibleItems.map((item) => {
             const Icon = item.icon;
             return (
               <button

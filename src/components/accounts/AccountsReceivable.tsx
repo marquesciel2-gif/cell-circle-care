@@ -3,7 +3,6 @@ import {
   Search, 
   Plus, 
   Calendar,
-  Phone,
   AlertCircle,
   CheckCircle2,
   Trash2,
@@ -13,7 +12,8 @@ import {
   CreditCard,
   FileText,
   Banknote,
-  Printer
+  Printer,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,14 +22,10 @@ import { AddAccountModal } from "@/components/modals/AddAccountModal";
 import { ReceivePaymentModal } from "@/components/modals/ReceivePaymentModal";
 import { EditAccountModal } from "@/components/modals/EditAccountModal";
 import { ReceiptModal } from "@/components/modals/ReceiptModal";
-import { Account } from "@/types";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { toast } from "@/hooks/use-toast";
-
-const initialAccounts: Account[] = [
-  { id: 1, cliente: "João Silva", telefone: "(11) 99999-1234", descricao: "iPhone 12 - Conserto de tela", valor: 450, valorPago: 0, dataVencimento: "20/01/2025", formaPagamento: "promissoria", numeroParcelas: 3, status: "pendente" },
-  { id: 2, cliente: "Maria Santos", telefone: "(11) 98888-5678", descricao: "Galaxy S21 - Parcelado 2x", valor: 1899, valorPago: 949.5, dataVencimento: "15/01/2025", formaPagamento: "cartao", status: "parcial" },
-];
+import { useAccounts, Account, AccountInput } from "@/hooks/useAccounts";
+import { useUserRole } from "@/hooks/useUserRole";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const statusConfig = {
   pendente: { 
@@ -54,13 +50,13 @@ const statusConfig = {
   },
 };
 
-const paymentIcons = {
+const paymentIcons: Record<string, any> = {
   promissoria: FileText,
   avista: Banknote,
   cartao: CreditCard,
 };
 
-const paymentLabels = {
+const paymentLabels: Record<string, string> = {
   promissoria: "Promissória",
   avista: "À Vista",
   cartao: "Cartão",
@@ -73,59 +69,40 @@ export function AccountsReceivable() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [accounts, setAccounts] = useLocalStorage<Account[]>("accounts", initialAccounts);
+  
+  const { accounts, loading, addAccount, updateAccount, receivePayment, deleteAccount, totalPendente, totalAtrasado } = useAccounts();
+  const { isAdmin, isVendedor } = useUserRole();
+
+  const canEdit = isAdmin || isVendedor;
 
   const filteredAccounts = accounts.filter(a => 
-    a.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    a.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     a.descricao.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalPendente = accounts
-    .filter(a => a.status !== "pago")
-    .reduce((sum, a) => sum + (a.valor - a.valorPago), 0);
+  const handleAddAccount = async (newAccount: any) => {
+    const input: AccountInput = {
+      client_name: newAccount.cliente,
+      descricao: newAccount.descricao,
+      valor_total: newAccount.valor,
+      valor_pago: newAccount.valorPago || 0,
+      parcelas: newAccount.numeroParcelas || 1,
+      forma_pagamento: newAccount.formaPagamento,
+      vencimento: newAccount.dataVencimento,
+    };
+    await addAccount(input);
+    setModalOpen(false);
+  };
 
-  const totalAtrasado = accounts
-    .filter(a => a.status === "atrasado")
-    .reduce((sum, a) => sum + (a.valor - a.valorPago), 0);
-
-  const handleAddAccount = (newAccount: Omit<Account, "id" | "status">) => {
-    const id = Date.now();
-    let status: Account["status"] = "pendente";
-    if (newAccount.valorPago >= newAccount.valor) {
-      status = "pago";
-    } else if (newAccount.valorPago > 0) {
-      status = "parcial";
+  const handleReceivePayment = async (accountId: number, valorRecebido: number) => {
+    if (selectedAccount) {
+      await receivePayment(selectedAccount.id, valorRecebido);
+      setReceiveModalOpen(false);
     }
-    setAccounts([...accounts, { ...newAccount, id, status }]);
-    toast({
-      title: "Conta registrada!",
-      description: `Conta de ${newAccount.cliente} foi adicionada.`,
-    });
   };
 
-  const handleReceivePayment = (accountId: number, valorRecebido: number) => {
-    setAccounts(accounts.map(a => {
-      if (a.id === accountId) {
-        const novoValorPago = a.valorPago + valorRecebido;
-        let novoStatus: Account["status"] = a.status;
-        if (novoValorPago >= a.valor) {
-          novoStatus = "pago";
-        } else if (novoValorPago > 0) {
-          novoStatus = "parcial";
-        }
-        return { ...a, valorPago: novoValorPago, status: novoStatus };
-      }
-      return a;
-    }));
-    toast({
-      title: "Pagamento recebido!",
-      description: `R$ ${valorRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} registrado.`,
-    });
-  };
-
-  const handleDelete = (id: number) => {
-    setAccounts(accounts.filter(a => a.id !== id));
-    toast({ title: "Conta removida" });
+  const handleDelete = async (id: string) => {
+    await deleteAccount(id);
   };
 
   const handleEdit = (account: Account) => {
@@ -133,9 +110,17 @@ export function AccountsReceivable() {
     setEditModalOpen(true);
   };
 
-  const handleSaveEdit = (updatedAccount: Account) => {
-    setAccounts(accounts.map(a => a.id === updatedAccount.id ? updatedAccount : a));
-    toast({ title: "Conta atualizada!" });
+  const handleSaveEdit = async (updatedAccount: any) => {
+    if (selectedAccount) {
+      await updateAccount(selectedAccount.id, {
+        client_name: updatedAccount.cliente,
+        descricao: updatedAccount.descricao,
+        valor_total: updatedAccount.valor,
+        valor_pago: updatedAccount.valorPago,
+        forma_pagamento: updatedAccount.formaPagamento,
+      });
+      setEditModalOpen(false);
+    }
   };
 
   const openReceiveModal = (account: Account) => {
@@ -148,18 +133,42 @@ export function AccountsReceivable() {
     setReceiptModalOpen(true);
   };
 
+  // Convert Account to old format for modals
+  const toOldFormat = (account: Account) => ({
+    id: parseInt(account.id) || 0,
+    cliente: account.client_name,
+    telefone: "",
+    descricao: account.descricao,
+    valor: account.valor_total,
+    valorPago: account.valor_pago,
+    dataVencimento: account.vencimento ? format(new Date(account.vencimento), "dd/MM/yyyy", { locale: ptBR }) : "",
+    formaPagamento: account.forma_pagamento as any,
+    numeroParcelas: account.parcelas,
+    status: account.status as any,
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 animate-slide-up">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-foreground">Contas a Receber</h1>
-        <Button 
-          className="gradient-primary text-primary-foreground border-0"
-          onClick={() => setModalOpen(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Conta
-        </Button>
+        {canEdit && (
+          <Button 
+            className="gradient-primary text-primary-foreground border-0"
+            onClick={() => setModalOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Conta
+          </Button>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -209,14 +218,14 @@ export function AccountsReceivable() {
       <div className="space-y-3">
         {filteredAccounts.length === 0 ? (
           <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
-            Nenhuma conta encontrada. Clique em "Nova Conta" para registrar.
+            Nenhuma conta encontrada.
           </div>
         ) : (
           filteredAccounts.map((account) => {
-            const config = statusConfig[account.status];
+            const config = statusConfig[account.status as keyof typeof statusConfig] || statusConfig.pendente;
             const StatusIcon = config.icon;
-            const PaymentIcon = paymentIcons[account.formaPagamento];
-            const restante = account.valor - account.valorPago;
+            const PaymentIcon = paymentIcons[account.forma_pagamento] || Banknote;
+            const restante = account.valor_total - account.valor_pago;
 
             return (
               <div 
@@ -226,27 +235,25 @@ export function AccountsReceivable() {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="font-semibold text-foreground">{account.cliente}</h3>
+                      <h3 className="font-semibold text-foreground">{account.client_name}</h3>
                       <Badge variant="outline" className={cn("text-xs", config.className)}>
                         <StatusIcon className="mr-1 h-3 w-3" />
                         {config.label}
                       </Badge>
                       <Badge variant="secondary" className="text-xs">
                         <PaymentIcon className="mr-1 h-3 w-3" />
-                        {paymentLabels[account.formaPagamento]}
-                        {account.numeroParcelas && ` (${account.numeroParcelas}x)`}
+                        {paymentLabels[account.forma_pagamento] || account.forma_pagamento}
+                        {account.parcelas > 1 && ` (${account.parcelas}x)`}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{account.descricao}</p>
                     <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-4 w-4" />
-                        {account.telefone}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        Venc: {account.dataVencimento}
-                      </span>
+                      {account.vencimento && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          Venc: {format(new Date(account.vencimento), "dd/MM/yyyy", { locale: ptBR })}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -254,7 +261,7 @@ export function AccountsReceivable() {
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">Valor Total</p>
                       <p className="text-lg font-bold text-foreground">
-                        R$ {account.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {account.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
                       {(account.status === "parcial" || account.status === "pendente") && restante > 0 && (
                         <p className="text-xs text-muted-foreground">
@@ -262,38 +269,42 @@ export function AccountsReceivable() {
                         </p>
                       )}
                     </div>
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      onClick={() => handleEdit(account)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      onClick={() => openReceiptModal(account)}
-                      title="Gerar Comprovante"
-                    >
-                      <Printer className="h-4 w-4" />
-                    </Button>
-                    {account.status !== "pago" && (
-                      <Button 
-                        size="sm" 
-                        className="gradient-success text-success-foreground border-0"
-                        onClick={() => openReceiveModal(account)}
-                      >
-                        Receber
-                      </Button>
+                    {canEdit && (
+                      <>
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => handleEdit(account)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => openReceiptModal(account)}
+                          title="Gerar Comprovante"
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                        {account.status !== "pago" && (
+                          <Button 
+                            size="sm" 
+                            className="gradient-success text-success-foreground border-0"
+                            onClick={() => openReceiveModal(account)}
+                          >
+                            Receber
+                          </Button>
+                        )}
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(account.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
                     )}
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(account.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -311,19 +322,19 @@ export function AccountsReceivable() {
       <ReceivePaymentModal
         open={receiveModalOpen}
         onClose={() => setReceiveModalOpen(false)}
-        account={selectedAccount}
+        account={selectedAccount ? toOldFormat(selectedAccount) : null}
         onReceive={handleReceivePayment}
       />
       <EditAccountModal
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
-        account={selectedAccount}
+        account={selectedAccount ? toOldFormat(selectedAccount) : null}
         onSave={handleSaveEdit}
       />
       <ReceiptModal
         open={receiptModalOpen}
         onClose={() => setReceiptModalOpen(false)}
-        account={selectedAccount}
+        account={selectedAccount ? toOldFormat(selectedAccount) : null}
       />
     </div>
   );
