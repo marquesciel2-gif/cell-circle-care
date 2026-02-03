@@ -1,64 +1,59 @@
 
-# Plano: Recuperar Contas a Receber
 
-## Diagnóstico
+## Adicionar Seleção de Data de Recebimento nas Contas a Receber
 
-Os dados **não foram apagados**. Eles ainda estão no localStorage do seu navegador com a chave `"accounts"`. O problema é que:
+### Objetivo
+Permitir que o usuário selecione a data em que um pagamento foi recebido, em vez de usar automaticamente a data atual.
 
-1. O sistema antigo salvava em **localStorage** (dados locais no navegador)
-2. Mudei o Dashboard para buscar do **banco de dados** (Supabase)
-3. O banco de dados está vazio porque nunca recebeu esses dados
+### Análise da Situação Atual
+- O modal `ReceivePaymentModal` permite apenas inserir o valor a receber
+- A função `receivePayment` no hook `useAccounts` apenas atualiza o `valor_pago` na conta
+- Existe uma tabela `payments` no banco de dados que não está sendo utilizada
+- A tabela `payments` tem as colunas: `id`, `account_id`, `valor`, `forma_pagamento`, `received_by`, `created_at`
 
-## Solução
+### Plano de Implementação
 
-Vou criar um mecanismo de migração automática que:
+#### 1. Atualizar a Tabela de Pagamentos
+Adicionar uma coluna `data_recebimento` na tabela `payments` para armazenar a data escolhida pelo usuário.
 
-1. Verifica se existem contas no localStorage
-2. Se existirem, migra automaticamente para o banco de dados
-3. Após migração bem-sucedida, limpa o localStorage antigo
-
-### Alterações
-
-**Arquivo: `src/hooks/useAccounts.ts`**
-- Adicionar função `migrateFromLocalStorage()` que:
-  - Busca dados do localStorage com a chave `"accounts"`
-  - Converte para o formato do banco de dados
-  - Insere no Supabase
-  - Remove do localStorage após sucesso
-
-**Arquivo: `src/pages/Index.tsx` (ou componente raiz)**
-- Executar migração automaticamente uma vez ao carregar a aplicação
-
-## Resumo Técnico
-
-```typescript
-// Em useAccounts.ts - nova função
-const migrateFromLocalStorage = async () => {
-  const localAccounts = localStorage.getItem("accounts");
-  if (!localAccounts || !user) return;
-  
-  const accounts = JSON.parse(localAccounts);
-  if (accounts.length === 0) return;
-  
-  // Converter formato antigo para novo e inserir
-  for (const account of accounts) {
-    await supabase.from("accounts_receivable").insert({
-      client_name: account.cliente,
-      descricao: account.descricao,
-      valor_total: account.valor,
-      valor_pago: account.valorPago || 0,
-      parcelas: account.numeroParcelas || 1,
-      forma_pagamento: account.formaPagamento,
-      status: account.status,
-      vencimento: account.dataVencimento || null,
-      created_by: user.id,
-    });
-  }
-  
-  // Limpar localStorage após migração
-  localStorage.removeItem("accounts");
-  toast({ title: "Contas migradas com sucesso!" });
-};
+```sql
+ALTER TABLE payments ADD COLUMN data_recebimento DATE DEFAULT CURRENT_DATE;
 ```
 
-Esta solução preserva todos os seus dados existentes e migra automaticamente para o banco de dados.
+#### 2. Atualizar o Modal de Recebimento
+Modificar `src/components/modals/ReceivePaymentModal.tsx` para incluir:
+- Campo de seleção de data usando o componente `Popover` + `Calendar`
+- Data padrão como a data atual
+- Passar a data selecionada para a função de recebimento
+
+#### 3. Atualizar o Hook useAccounts
+Modificar a função `receivePayment` em `src/hooks/useAccounts.ts` para:
+- Aceitar a data de recebimento como parâmetro
+- Registrar o pagamento na tabela `payments` com a data selecionada
+- Continuar atualizando o `valor_pago` na conta
+
+#### 4. Atualizar a Interface
+Ajustar `src/components/accounts/AccountsReceivable.tsx` para passar a data de recebimento ao chamar a função.
+
+---
+
+### Detalhes Técnicos
+
+**Alterações nos arquivos:**
+
+| Arquivo | Alteração |
+|---------|-----------|
+| Migração SQL | Adicionar coluna `data_recebimento` na tabela `payments` |
+| `ReceivePaymentModal.tsx` | Adicionar DatePicker com Popover e Calendar |
+| `useAccounts.ts` | Modificar `receivePayment` para registrar na tabela `payments` |
+| `AccountsReceivable.tsx` | Atualizar chamada de `handleReceivePayment` |
+
+**Componentes necessários (já existem no projeto):**
+- `Calendar` (src/components/ui/calendar.tsx)
+- `Popover` (src/components/ui/popover.tsx)
+- `Button` (src/components/ui/button.tsx)
+
+**Dependências utilizadas:**
+- `date-fns` para formatação de datas
+- `react-day-picker` já instalado
+
