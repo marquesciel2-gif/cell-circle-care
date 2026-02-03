@@ -130,7 +130,7 @@ const Index = () => {
 
       {/* Main Content */}
       <div className="lg:pl-64">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <Header onMenuClick={() => setSidebarOpen(true)} onNavigate={handleSectionChange} />
         <main className="p-4 lg:p-6">
           {renderContent()}
         </main>
