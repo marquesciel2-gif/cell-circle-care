@@ -68,13 +68,6 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "accounts_receivable_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients_limited"
-            referencedColumns: ["id"]
-          },
         ]
       }
       clients: {
@@ -265,13 +258,6 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "repairs_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients_limited"
-            referencedColumns: ["id"]
-          },
         ]
       }
       user_roles: {
@@ -297,33 +283,7 @@ export type Database = {
       }
     }
     Views: {
-      clients_limited: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          id: string | null
-          nome: string | null
-          telefone: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          id?: string | null
-          nome?: string | null
-          telefone?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          id?: string | null
-          nome?: string | null
-          telefone?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       get_clients_for_user: {
