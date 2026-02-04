@@ -1,113 +1,83 @@
 
+# Plano: Ajustar Políticas RLS da Tabela Clientes
 
-## Adicionar Aba de Despesas aos Relatórios
+## Resumo
 
-### Objetivo
-Criar uma nova aba "Despesas" na seção de Relatórios para permitir o registro e visualização de despesas do negócio (contas de luz, aluguel, fornecedores, etc.).
+Vamos corrigir as políticas de segurança (RLS) da tabela `clients` para garantir que técnicos e vendedores possam gerenciar apenas os clientes que eles próprios criaram, enquanto administradores mantêm acesso total.
 
-### Arquitetura da Solução
+## Problema Atual
 
-```text
-+-------------------+     +------------------+     +-------------------+
-|  ReportsSection   |---->|  ExpensesReport  |---->|   useExpenses     |
-|  (adicionar aba)  |     |  (novo componente)|     |   (novo hook)     |
-+-------------------+     +------------------+     +-------------------+
-                                                            |
-                                                            v
-                                                   +-------------------+
-                                                   |  Tabela expenses  |
-                                                   |  (novo no banco)  |
-                                                   +-------------------+
+Atualmente as políticas estão incompletas:
+- Não existe política de **UPDATE** para funcionários
+- Não existe política de **DELETE** para funcionários  
+- A política de **SELECT** bloqueia funcionários (eles dependem da função `get_clients_for_user`)
+
+Isso causa erros quando funcionários tentam editar ou excluir clientes.
+
+## Alterações no Banco de Dados
+
+Vamos adicionar as políticas faltantes via migração SQL:
+
+### 1. Política de SELECT para Funcionários
+Permitir que técnicos e vendedores vejam apenas seus próprios clientes:
+
+```sql
+CREATE POLICY "Staff can select own clients"
+ON public.clients FOR SELECT
+USING (
+  (has_role(auth.uid(), 'tecnico') OR has_role(auth.uid(), 'vendedor'))
+  AND created_by = auth.uid()
+);
 ```
 
-### Implementacao
+### 2. Política de UPDATE para Funcionários
+Permitir atualização apenas dos próprios clientes:
 
-#### 1. Criar Tabela no Banco de Dados
-Criar a tabela `expenses` com as seguintes colunas:
+```sql
+CREATE POLICY "Staff can update own clients"
+ON public.clients FOR UPDATE
+USING (
+  (has_role(auth.uid(), 'tecnico') OR has_role(auth.uid(), 'vendedor'))
+  AND created_by = auth.uid()
+);
+```
 
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | UUID | Identificador unico |
-| descricao | TEXT | Descricao da despesa |
-| valor | NUMERIC | Valor da despesa |
-| categoria | TEXT | Categoria (aluguel, luz, fornecedor, etc.) |
-| data_despesa | DATE | Data em que a despesa ocorreu |
-| forma_pagamento | TEXT | Forma de pagamento |
-| status | TEXT | pago, pendente |
-| created_by | UUID | Usuario que registrou |
-| created_at | TIMESTAMP | Data de criacao |
-| updated_at | TIMESTAMP | Data de atualizacao |
+### 3. Política de DELETE para Funcionários
+Permitir exclusão apenas dos próprios clientes:
 
-Politicas RLS:
-- Admins: acesso total (SELECT, INSERT, UPDATE, DELETE)
-- Vendedores: podem inserir e ver apenas suas proprias despesas
-- Bloquear acesso anonimo
+```sql
+CREATE POLICY "Staff can delete own clients"
+ON public.clients FOR DELETE
+USING (
+  (has_role(auth.uid(), 'tecnico') OR has_role(auth.uid(), 'vendedor'))
+  AND created_by = auth.uid()
+);
+```
 
-#### 2. Criar Hook useExpenses
-Novo arquivo: `src/hooks/useExpenses.ts`
+## Visão Geral das Políticas Finais
 
-Funcionalidades:
-- `fetchExpenses()` - Buscar despesas
-- `addExpense()` - Adicionar nova despesa
-- `updateExpense()` - Atualizar despesa
-- `deleteExpense()` - Remover despesa
-- Calculos de totais por categoria e periodo
+| Operação | Administrador | Técnico/Vendedor |
+|----------|---------------|------------------|
+| SELECT   | Todos os clientes | Apenas `created_by = auth.uid()` |
+| INSERT   | Qualquer cliente | Apenas com `created_by = auth.uid()` |
+| UPDATE   | Todos os clientes | Apenas `created_by = auth.uid()` |
+| DELETE   | Todos os clientes | Apenas `created_by = auth.uid()` |
 
-#### 3. Criar Componente ExpensesReport
-Novo arquivo: `src/components/reports/ExpensesReport.tsx`
+## Mascaramento de Dados (já implementado)
 
-Elementos:
-- Cards de resumo por categoria (Aluguel, Energia, Fornecedores, Outros)
-- Filtros por data, categoria e status
-- Tabela listando despesas
-- Botao para adicionar nova despesa
-- Botao de impressao
+O mascaramento de email e endereço para funcionários é tratado pela função `get_clients_for_user()` que já existe e retorna NULL para esses campos quando o usuário não é admin.
 
-#### 4. Criar Modal AddExpenseModal
-Novo arquivo: `src/components/modals/AddExpenseModal.tsx`
+## Nenhuma Alteração de Código Necessária
 
-Campos do formulario:
-- Descricao
-- Valor
-- Categoria (select com opcoes predefinidas)
-- Data da despesa (date picker)
-- Forma de pagamento
-- Status (pago/pendente)
+O código em `useClients.ts` já está preparado:
+- `fetchClients` usa a função RPC segura
+- `addClient`, `updateClient`, `deleteClient` usam operações diretas que serão protegidas pelas novas políticas
 
-#### 5. Atualizar ReportsSection
-Modificar: `src/components/reports/ReportsSection.tsx`
+## Verificação Pós-Implementação
 
-Alteracoes:
-- Adicionar nova aba "Despesas" ao TabsList
-- Importar e renderizar ExpensesReport no TabsContent
-- Atualizar grid-cols de 2 para 3
-
----
-
-### Detalhes Tecnicos
-
-**Arquivos a criar:**
-1. Migracao SQL para tabela `expenses`
-2. `src/hooks/useExpenses.ts`
-3. `src/components/reports/ExpensesReport.tsx`
-4. `src/components/modals/AddExpenseModal.tsx`
-
-**Arquivos a modificar:**
-1. `src/components/reports/ReportsSection.tsx`
-2. `src/types/index.ts` (adicionar tipo Expense)
-
-**Categorias de despesas sugeridas:**
-- aluguel (Aluguel)
-- energia (Energia/Luz)
-- agua (Agua)
-- internet (Internet/Telefone)
-- fornecedor (Fornecedores)
-- manutencao (Manutencao)
-- salarios (Salarios)
-- impostos (Impostos)
-- outros (Outros)
-
-**Controle de acesso:**
-- Apenas admins e vendedores terao acesso a aba de despesas
-- Segue o mesmo padrao de RLS das outras tabelas financeiras
-
+Após aplicar as políticas:
+1. Testar login como técnico/vendedor
+2. Criar um novo cliente
+3. Editar o cliente criado
+4. Excluir o cliente criado
+5. Verificar que não é possível ver/editar clientes de outros usuários
