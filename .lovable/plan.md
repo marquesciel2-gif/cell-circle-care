@@ -1,59 +1,113 @@
 
 
-## Adicionar Seleção de Data de Recebimento nas Contas a Receber
+## Adicionar Aba de Despesas aos Relatórios
 
 ### Objetivo
-Permitir que o usuário selecione a data em que um pagamento foi recebido, em vez de usar automaticamente a data atual.
+Criar uma nova aba "Despesas" na seção de Relatórios para permitir o registro e visualização de despesas do negócio (contas de luz, aluguel, fornecedores, etc.).
 
-### Análise da Situação Atual
-- O modal `ReceivePaymentModal` permite apenas inserir o valor a receber
-- A função `receivePayment` no hook `useAccounts` apenas atualiza o `valor_pago` na conta
-- Existe uma tabela `payments` no banco de dados que não está sendo utilizada
-- A tabela `payments` tem as colunas: `id`, `account_id`, `valor`, `forma_pagamento`, `received_by`, `created_at`
+### Arquitetura da Solução
 
-### Plano de Implementação
-
-#### 1. Atualizar a Tabela de Pagamentos
-Adicionar uma coluna `data_recebimento` na tabela `payments` para armazenar a data escolhida pelo usuário.
-
-```sql
-ALTER TABLE payments ADD COLUMN data_recebimento DATE DEFAULT CURRENT_DATE;
+```text
++-------------------+     +------------------+     +-------------------+
+|  ReportsSection   |---->|  ExpensesReport  |---->|   useExpenses     |
+|  (adicionar aba)  |     |  (novo componente)|     |   (novo hook)     |
++-------------------+     +------------------+     +-------------------+
+                                                            |
+                                                            v
+                                                   +-------------------+
+                                                   |  Tabela expenses  |
+                                                   |  (novo no banco)  |
+                                                   +-------------------+
 ```
 
-#### 2. Atualizar o Modal de Recebimento
-Modificar `src/components/modals/ReceivePaymentModal.tsx` para incluir:
-- Campo de seleção de data usando o componente `Popover` + `Calendar`
-- Data padrão como a data atual
-- Passar a data selecionada para a função de recebimento
+### Implementacao
 
-#### 3. Atualizar o Hook useAccounts
-Modificar a função `receivePayment` em `src/hooks/useAccounts.ts` para:
-- Aceitar a data de recebimento como parâmetro
-- Registrar o pagamento na tabela `payments` com a data selecionada
-- Continuar atualizando o `valor_pago` na conta
+#### 1. Criar Tabela no Banco de Dados
+Criar a tabela `expenses` com as seguintes colunas:
 
-#### 4. Atualizar a Interface
-Ajustar `src/components/accounts/AccountsReceivable.tsx` para passar a data de recebimento ao chamar a função.
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | UUID | Identificador unico |
+| descricao | TEXT | Descricao da despesa |
+| valor | NUMERIC | Valor da despesa |
+| categoria | TEXT | Categoria (aluguel, luz, fornecedor, etc.) |
+| data_despesa | DATE | Data em que a despesa ocorreu |
+| forma_pagamento | TEXT | Forma de pagamento |
+| status | TEXT | pago, pendente |
+| created_by | UUID | Usuario que registrou |
+| created_at | TIMESTAMP | Data de criacao |
+| updated_at | TIMESTAMP | Data de atualizacao |
+
+Politicas RLS:
+- Admins: acesso total (SELECT, INSERT, UPDATE, DELETE)
+- Vendedores: podem inserir e ver apenas suas proprias despesas
+- Bloquear acesso anonimo
+
+#### 2. Criar Hook useExpenses
+Novo arquivo: `src/hooks/useExpenses.ts`
+
+Funcionalidades:
+- `fetchExpenses()` - Buscar despesas
+- `addExpense()` - Adicionar nova despesa
+- `updateExpense()` - Atualizar despesa
+- `deleteExpense()` - Remover despesa
+- Calculos de totais por categoria e periodo
+
+#### 3. Criar Componente ExpensesReport
+Novo arquivo: `src/components/reports/ExpensesReport.tsx`
+
+Elementos:
+- Cards de resumo por categoria (Aluguel, Energia, Fornecedores, Outros)
+- Filtros por data, categoria e status
+- Tabela listando despesas
+- Botao para adicionar nova despesa
+- Botao de impressao
+
+#### 4. Criar Modal AddExpenseModal
+Novo arquivo: `src/components/modals/AddExpenseModal.tsx`
+
+Campos do formulario:
+- Descricao
+- Valor
+- Categoria (select com opcoes predefinidas)
+- Data da despesa (date picker)
+- Forma de pagamento
+- Status (pago/pendente)
+
+#### 5. Atualizar ReportsSection
+Modificar: `src/components/reports/ReportsSection.tsx`
+
+Alteracoes:
+- Adicionar nova aba "Despesas" ao TabsList
+- Importar e renderizar ExpensesReport no TabsContent
+- Atualizar grid-cols de 2 para 3
 
 ---
 
-### Detalhes Técnicos
+### Detalhes Tecnicos
 
-**Alterações nos arquivos:**
+**Arquivos a criar:**
+1. Migracao SQL para tabela `expenses`
+2. `src/hooks/useExpenses.ts`
+3. `src/components/reports/ExpensesReport.tsx`
+4. `src/components/modals/AddExpenseModal.tsx`
 
-| Arquivo | Alteração |
-|---------|-----------|
-| Migração SQL | Adicionar coluna `data_recebimento` na tabela `payments` |
-| `ReceivePaymentModal.tsx` | Adicionar DatePicker com Popover e Calendar |
-| `useAccounts.ts` | Modificar `receivePayment` para registrar na tabela `payments` |
-| `AccountsReceivable.tsx` | Atualizar chamada de `handleReceivePayment` |
+**Arquivos a modificar:**
+1. `src/components/reports/ReportsSection.tsx`
+2. `src/types/index.ts` (adicionar tipo Expense)
 
-**Componentes necessários (já existem no projeto):**
-- `Calendar` (src/components/ui/calendar.tsx)
-- `Popover` (src/components/ui/popover.tsx)
-- `Button` (src/components/ui/button.tsx)
+**Categorias de despesas sugeridas:**
+- aluguel (Aluguel)
+- energia (Energia/Luz)
+- agua (Agua)
+- internet (Internet/Telefone)
+- fornecedor (Fornecedores)
+- manutencao (Manutencao)
+- salarios (Salarios)
+- impostos (Impostos)
+- outros (Outros)
 
-**Dependências utilizadas:**
-- `date-fns` para formatação de datas
-- `react-day-picker` já instalado
+**Controle de acesso:**
+- Apenas admins e vendedores terao acesso a aba de despesas
+- Segue o mesmo padrao de RLS das outras tabelas financeiras
 
