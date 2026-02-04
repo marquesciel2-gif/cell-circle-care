@@ -4,7 +4,6 @@ import {
   Package, 
   Wrench, 
   Receipt, 
-  Settings,
   Headphones,
   BarChart3,
   Tv,
@@ -92,19 +91,6 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="border-t border-sidebar-border p-4">
-          <button 
-            onClick={() => onSectionChange("configuracoes")}
-            className={cn(
-              "nav-item w-full",
-              activeSection === "configuracoes" && "nav-item-active"
-            )}
-          >
-            <Settings className="h-5 w-5" />
-            <span>Configurações</span>
-          </button>
-        </div>
       </div>
     </aside>
   );
