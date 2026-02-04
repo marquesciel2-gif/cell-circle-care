@@ -7,7 +7,8 @@ import {
   Headphones,
   BarChart3,
   Tv,
-  Users
+  Users,
+  Wallet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -36,6 +37,7 @@ const menuItems: MenuItem[] = [
   { id: "consertos", label: "Consertos", icon: Wrench, roles: ["admin", "tecnico"] },
   { id: "contas", label: "Contas a Receber", icon: Receipt, roles: ["admin", "vendedor"] },
   { id: "relatorios", label: "Relatórios", icon: BarChart3, roles: ["admin"] },
+  { id: "despesas", label: "Despesas", icon: Wallet, roles: ["admin", "vendedor"] },
 ];
 
 export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {

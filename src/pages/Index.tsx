@@ -9,6 +9,7 @@ import { AccountsReceivable } from "@/components/accounts/AccountsReceivable";
 import { SettingsSection } from "@/components/settings/SettingsSection";
 import { ReportsSection } from "@/components/reports/ReportsSection";
 import { ClientsSection } from "@/components/clients/ClientsSection";
+import { ExpensesReport } from "@/components/reports/ExpensesReport";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -42,6 +43,7 @@ const Index = () => {
       consertos: ["admin", "tecnico"],
       contas: ["admin", "vendedor"],
       relatorios: ["admin"],
+      despesas: ["admin", "vendedor"],
       configuracoes: ["admin", "tecnico", "vendedor"],
     };
 
@@ -88,6 +90,8 @@ const Index = () => {
         return <AccountsReceivable />;
       case "relatorios":
         return <ReportsSection />;
+      case "despesas":
+        return <ExpensesReport />;
       case "configuracoes":
         return <SettingsSection />;
       default:
