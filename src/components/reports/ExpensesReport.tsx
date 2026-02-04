@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -13,6 +13,7 @@ import {
   Users,
   FileText,
   MoreHorizontal,
+  Wallet,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useExpenses, EXPENSE_CATEGORIES } from "@/hooks/useExpenses";
 import { AddExpenseModal } from "@/components/modals/AddExpenseModal";
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   aluguel: <Home className="h-4 w-4" />,
@@ -56,6 +58,18 @@ const categoryIcons: Record<string, React.ReactNode> = {
   impostos: <FileText className="h-4 w-4" />,
   outros: <MoreHorizontal className="h-4 w-4" />,
 };
+
+const CATEGORY_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--accent))",
+  "hsl(var(--secondary))",
+  "hsl(var(--warning))",
+  "hsl(var(--destructive))",
+  "hsl(210 40% 50%)",
+  "hsl(280 60% 50%)",
+  "hsl(160 60% 40%)",
+  "hsl(30 80% 50%)",
+];
 
 export function ExpensesReport() {
   const {
@@ -80,6 +94,24 @@ export function ExpensesReport() {
       filterStatus === "all" || expense.status === filterStatus;
     return matchCategory && matchStatus;
   });
+
+  const categoryChartData = useMemo(() => {
+    const byCategory: Record<string, number> = {};
+    expenses.forEach((expense) => {
+      const label = EXPENSE_CATEGORIES.find((c) => c.value === expense.categoria)?.label || expense.categoria;
+      byCategory[label] = (byCategory[label] || 0) + Number(expense.valor);
+    });
+    return Object.entries(byCategory)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [expenses]);
+
+  const statusChartData = useMemo(() => {
+    return [
+      { name: "Pagas", value: getTotalPaid(), color: "hsl(var(--success))" },
+      { name: "Pendentes", value: getTotalPending(), color: "hsl(var(--warning))" },
+    ].filter((item) => item.value > 0);
+  }, [getTotalPaid, getTotalPending]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -123,6 +155,19 @@ export function ExpensesReport() {
 
   return (
     <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="rounded-lg bg-primary/10 p-2">
+          <Wallet className="h-6 w-6 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Despesas</h1>
+          <p className="text-sm text-muted-foreground">
+            Controle de despesas operacionais
+          </p>
+        </div>
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -145,7 +190,7 @@ export function ExpensesReport() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-success">
               {formatCurrency(getTotalPaid())}
             </div>
           </CardContent>
@@ -158,12 +203,85 @@ export function ExpensesReport() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">
+            <div className="text-2xl font-bold text-warning">
               {formatCurrency(getTotalPending())}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Charts */}
+      {expenses.length > 0 && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* Pie Chart - By Category */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h3 className="text-sm font-medium text-foreground mb-4">Despesas por Categoria</h3>
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryChartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={3}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {categoryChartData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Bar Chart - By Category Amount */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h3 className="text-sm font-medium text-foreground mb-4">Valor por Categoria</h3>
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={categoryChartData.slice(0, 6)} layout="vertical">
+                  <XAxis
+                    type="number"
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    tickFormatter={(value) => `R$${(value / 1000).toFixed(0)}k`}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                    width={90}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                    {categoryChartData.slice(0, 6).map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters and Actions */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
