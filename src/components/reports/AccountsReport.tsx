@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 
 const statusConfig = {
   pendente: { label: "Pendente", icon: Clock, className: "bg-warning/10 text-warning border-warning/20" },
@@ -31,6 +32,15 @@ const paymentIcons = {
   avista: Banknote,
   cartao: CreditCard,
 };
+
+const STATUS_COLORS = {
+  pendente: "hsl(var(--warning))",
+  atrasado: "hsl(var(--destructive))",
+  pago: "hsl(var(--success))",
+  parcial: "hsl(var(--accent))",
+};
+
+const PAYMENT_COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--secondary))"];
 
 export function AccountsReport() {
   const [accounts] = useLocalStorage<Account[]>("accounts", []);
@@ -72,6 +82,24 @@ export function AccountsReport() {
       },
       { pendente: 0, atrasado: 0, pago: 0, total: 0 }
     );
+  }, [filteredAccounts]);
+
+  const statusChartData = useMemo(() => {
+    const data = [
+      { name: "Pendente", value: summary.pendente, color: STATUS_COLORS.pendente },
+      { name: "Atrasado", value: summary.atrasado, color: STATUS_COLORS.atrasado },
+      { name: "Pago", value: summary.pago, color: STATUS_COLORS.pago },
+    ].filter((item) => item.value > 0);
+    return data;
+  }, [summary]);
+
+  const paymentChartData = useMemo(() => {
+    const byPayment: Record<string, number> = {};
+    filteredAccounts.forEach((account) => {
+      const key = paymentLabels[account.formaPagamento] || account.formaPagamento;
+      byPayment[key] = (byPayment[key] || 0) + account.valor;
+    });
+    return Object.entries(byPayment).map(([name, value]) => ({ name, value }));
   }, [filteredAccounts]);
 
   const handlePrint = () => {
@@ -124,6 +152,83 @@ export function AccountsReport() {
           </div>
         </div>
       </div>
+
+      {/* Charts */}
+      {accounts.length > 0 && (
+        <div className="grid gap-4 lg:grid-cols-2 print:hidden">
+          {/* Pie Chart - Status */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h3 className="text-sm font-medium text-foreground mb-4">Contas por Status</h3>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusChartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {statusChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number) =>
+                      `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                    }
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Bar Chart - Payment Method */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h3 className="text-sm font-medium text-foreground mb-4">Contas por Forma de Pagamento</h3>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={paymentChartData} layout="vertical">
+                  <XAxis
+                    type="number"
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    tickFormatter={(value) => `R$${(value / 1000).toFixed(0)}k`}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                    width={80}
+                  />
+                  <Tooltip
+                    formatter={(value: number) =>
+                      `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                    }
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                    {paymentChartData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={PAYMENT_COLORS[index % PAYMENT_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row print:hidden">
