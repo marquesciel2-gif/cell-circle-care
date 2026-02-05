@@ -12,6 +12,7 @@ export interface Client {
   created_by: string;
   created_at: string;
   updated_at: string;
+  tem_debito?: boolean;
 }
 
 export interface ClientInput {

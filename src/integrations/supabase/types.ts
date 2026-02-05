@@ -338,6 +338,7 @@ export type Database = {
           id: string
           nome: string
           telefone: string
+          tem_debito: boolean
           updated_at: string
         }[]
       }
