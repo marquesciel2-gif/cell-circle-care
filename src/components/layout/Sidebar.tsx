@@ -64,8 +64,8 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden">
-            <img src="/favicon.png" alt="Logo" className="h-10 w-10 object-contain" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden shadow-[0_4px_8px_rgba(0,0,0,0.3),0_2px_4px_rgba(0,0,0,0.2)] [transform:perspective(500px)_rotateY(-5deg)] hover:[transform:perspective(500px)_rotateY(5deg)] transition-transform duration-300">
+            <img src="/favicon.png" alt="Logo" className="h-10 w-10 object-contain drop-shadow-[0_2px_3px_rgba(0,0,0,0.4)]" />
           </div>
           <div>
             <h1 className="text-lg font-bold text-sidebar-foreground">{settings.storeName || "CellStore"}</h1>
