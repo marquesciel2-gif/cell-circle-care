@@ -64,8 +64,8 @@ export function Sidebar({ activeSection, onSectionChange }: SidebarProps) {
       <div className="flex h-full flex-col">
         {/* Logo */}
         <div className="flex h-16 items-center gap-3 border-b border-sidebar-border px-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sidebar-accent">
-            <Smartphone className="h-5 w-5 text-sidebar-foreground" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden">
+            <img src="/favicon.png" alt="Logo" className="h-10 w-10 object-contain" />
           </div>
           <div>
             <h1 className="text-lg font-bold text-sidebar-foreground">{settings.storeName || "CellStore"}</h1>
