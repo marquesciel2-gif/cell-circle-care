@@ -1,7 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Receipt, FileText } from "lucide-react";
+import { BarChart3, Receipt, FileText, Wallet } from "lucide-react";
 import { SalesReport } from "./SalesReport";
 import { AccountsReport } from "./AccountsReport";
+import { ExpensesReport } from "./ExpensesReport";
 
 export function ReportsSection() {
   return (
