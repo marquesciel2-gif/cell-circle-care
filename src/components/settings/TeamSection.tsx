@@ -113,57 +113,41 @@ export function TeamSection() {
     setSaving(true);
 
     try {
-      // Create user via edge function would be ideal, but for now we'll use admin API
-      // For this demo, we'll create via signUp and then add roles
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin,
-        },
+      const roles: string[] = [];
+      if (isAdmin) roles.push("admin");
+      if (isTecnico) roles.push("tecnico");
+      if (isVendedor) roles.push("vendedor");
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      if (!token) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        return;
+      }
+
+      const response = await supabase.functions.invoke("create-collaborator", {
+        body: { email, password, nome: nome.trim(), roles },
       });
 
-      if (authError) throw authError;
-
-      if (!authData.user) {
-        throw new Error("Erro ao criar usuário");
+      if (response.error) {
+        // Try to parse error from function response
+        const errorMsg = response.error.message || "Erro ao cadastrar colaborador";
+        throw new Error(errorMsg);
       }
 
-      // Create profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert({
-          user_id: authData.user.id,
-          nome: nome.trim(),
-        });
-
-      if (profileError) throw profileError;
-
-      // Add roles
-      const rolesToAdd: { user_id: string; role: "admin" | "tecnico" | "vendedor" }[] = [];
-      if (isAdmin) rolesToAdd.push({ user_id: authData.user.id, role: "admin" });
-      if (isTecnico) rolesToAdd.push({ user_id: authData.user.id, role: "tecnico" });
-      if (isVendedor) rolesToAdd.push({ user_id: authData.user.id, role: "vendedor" });
-
-      if (rolesToAdd.length > 0) {
-        const { error: rolesError } = await supabase
-          .from("user_roles")
-          .insert(rolesToAdd);
-
-        if (rolesError) throw rolesError;
+      const result = response.data;
+      if (result?.error) {
+        throw new Error(result.error);
       }
 
-      toast.success("Colaborador cadastrado! E-mail de confirmação enviado.");
+      toast.success("Colaborador cadastrado com sucesso!");
       setIsOpen(false);
       resetForm();
       fetchMembers();
     } catch (error: any) {
       console.error("Error adding member:", error);
-      if (error.message?.includes("already registered")) {
-        toast.error("Este e-mail já está cadastrado");
-      } else {
-        toast.error("Erro ao cadastrar colaborador");
-      }
+      toast.error(error.message || "Erro ao cadastrar colaborador");
     } finally {
       setSaving(false);
     }
