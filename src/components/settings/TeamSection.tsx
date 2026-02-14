@@ -131,8 +131,13 @@ export function TeamSection() {
       });
 
       if (response.error) {
-        // Try to parse error from function response
-        const errorMsg = response.error.message || "Erro ao cadastrar colaborador";
+        let errorMsg = "Erro ao cadastrar colaborador";
+        try {
+          const errorBody = await (response.error as any).context?.json();
+          if (errorBody?.error) errorMsg = errorBody.error;
+        } catch {
+          errorMsg = response.error.message || errorMsg;
+        }
         throw new Error(errorMsg);
       }
 
