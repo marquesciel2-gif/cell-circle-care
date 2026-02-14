@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 export interface Account {
   id: string;
@@ -32,35 +33,23 @@ export interface AccountInput {
 
 export function useAccounts() {
   const { user } = useAuth();
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchAccounts = async () => {
-    if (!user) {
-      setAccounts([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
+  const { data: accounts = [], isLoading: loading } = useQuery({
+    queryKey: ["accounts"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("accounts_receivable")
         .select("*")
         .order("created_at", { ascending: false });
-
       if (error) throw error;
-      setAccounts(data || []);
-    } catch (error: any) {
-      console.error("Error fetching accounts:", error);
-      toast({ title: "Erro ao carregar contas", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 30000,
+  });
 
-  useEffect(() => {
-    fetchAccounts();
-  }, [user]);
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["accounts"] });
 
   const getStatus = (valorTotal: number, valorPago: number): string => {
     if (valorPago >= valorTotal) return "pago";
@@ -96,8 +85,7 @@ export function useAccounts() {
         .single();
 
       if (error) throw error;
-      
-      setAccounts((prev) => [data, ...prev]);
+      invalidate();
       toast({ title: "Conta registrada!" });
       return data;
     } catch (error: any) {
@@ -124,8 +112,7 @@ export function useAccounts() {
         .single();
 
       if (error) throw error;
-      
-      setAccounts((prev) => prev.map((a) => (a.id === id ? data : a)));
+      invalidate();
       toast({ title: "Conta atualizada!" });
       return data;
     } catch (error: any) {
@@ -151,8 +138,7 @@ export function useAccounts() {
         .single();
 
       if (error) throw error;
-      
-      setAccounts((prev) => prev.map((a) => (a.id === id ? data : a)));
+      invalidate();
       toast({ title: "Pagamento recebido!", description: `R$ ${valor.toFixed(2)} registrado.` });
       return data;
     } catch (error: any) {
@@ -170,8 +156,7 @@ export function useAccounts() {
         .eq("id", id);
 
       if (error) throw error;
-      
-      setAccounts((prev) => prev.filter((a) => a.id !== id));
+      invalidate();
       toast({ title: "Conta removida" });
       return true;
     } catch (error: any) {
@@ -181,13 +166,15 @@ export function useAccounts() {
     }
   };
 
-  const totalPendente = accounts
-    .filter((a) => a.status !== "pago")
-    .reduce((sum, a) => sum + (a.valor_total - a.valor_pago), 0);
+  const totalPendente = useMemo(() =>
+    accounts.filter((a) => a.status !== "pago").reduce((sum, a) => sum + (a.valor_total - a.valor_pago), 0),
+    [accounts]
+  );
 
-  const totalAtrasado = accounts
-    .filter((a) => a.status === "atrasado")
-    .reduce((sum, a) => sum + (a.valor_total - a.valor_pago), 0);
+  const totalAtrasado = useMemo(() =>
+    accounts.filter((a) => a.status === "atrasado").reduce((sum, a) => sum + (a.valor_total - a.valor_pago), 0),
+    [accounts]
+  );
 
   return {
     accounts,
@@ -198,6 +185,6 @@ export function useAccounts() {
     deleteAccount,
     totalPendente,
     totalAtrasado,
-    refetch: fetchAccounts,
+    refetch: invalidate,
   };
 }

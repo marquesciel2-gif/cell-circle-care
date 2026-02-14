@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface InventoryItem {
   id: string;
@@ -27,39 +27,22 @@ export interface InventoryInput {
 
 export function useInventory(categoria?: string) {
   const { user } = useAuth();
-  const [items, setItems] = useState<InventoryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchItems = async () => {
-    if (!user) {
-      setItems([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      // Usar função segura que retorna dados baseado no papel do usuário
+  const { data: allItems = [], isLoading: loading } = useQuery({
+    queryKey: ["inventory"],
+    queryFn: async () => {
       const { data, error } = await supabase.rpc("get_inventory_for_user");
-
       if (error) throw error;
-      
-      let filteredData = (data as InventoryItem[]) || [];
-      if (categoria) {
-        filteredData = filteredData.filter(item => item.categoria === categoria);
-      }
-      
-      setItems(filteredData);
-    } catch (error: any) {
-      console.error("Error fetching inventory:", error);
-      toast({ title: "Erro ao carregar estoque", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
+      return (data as InventoryItem[]) || [];
+    },
+    enabled: !!user,
+    staleTime: 30000,
+  });
 
-  useEffect(() => {
-    fetchItems();
-  }, [user, categoria]);
+  const items = categoria ? allItems.filter(item => item.categoria === categoria) : allItems;
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["inventory"] });
 
   const addItem = async (input: InventoryInput) => {
     if (!user) {
@@ -83,8 +66,7 @@ export function useInventory(categoria?: string) {
         .single();
 
       if (error) throw error;
-      
-      setItems((prev) => [data, ...prev]);
+      invalidate();
       toast({ title: "Produto adicionado!" });
       return data;
     } catch (error: any) {
@@ -104,8 +86,7 @@ export function useInventory(categoria?: string) {
         .single();
 
       if (error) throw error;
-      
-      setItems((prev) => prev.map((i) => (i.id === id ? data : i)));
+      invalidate();
       toast({ title: "Produto atualizado!" });
       return data;
     } catch (error: any) {
@@ -123,8 +104,7 @@ export function useInventory(categoria?: string) {
         .eq("id", id);
 
       if (error) throw error;
-      
-      setItems((prev) => prev.filter((i) => i.id !== id));
+      invalidate();
       toast({ title: "Produto removido" });
       return true;
     } catch (error: any) {
@@ -137,7 +117,6 @@ export function useInventory(categoria?: string) {
   const decrementQuantity = async (id: string) => {
     const item = items.find((i) => i.id === id);
     if (!item || item.quantidade <= 0) return null;
-
     return updateItem(id, { quantidade: item.quantidade - 1 });
   };
 
@@ -148,6 +127,6 @@ export function useInventory(categoria?: string) {
     updateItem,
     deleteItem,
     decrementQuantity,
-    refetch: fetchItems,
+    refetch: invalidate,
   };
 }
