@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface Repair {
   id: string;
@@ -30,35 +30,23 @@ export interface RepairInput {
 
 export function useRepairs() {
   const { user } = useAuth();
-  const [repairs, setRepairs] = useState<Repair[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchRepairs = async () => {
-    if (!user) {
-      setRepairs([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
+  const { data: repairs = [], isLoading: loading } = useQuery({
+    queryKey: ["repairs"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("repairs")
         .select("*")
         .order("created_at", { ascending: false });
-
       if (error) throw error;
-      setRepairs(data || []);
-    } catch (error: any) {
-      console.error("Error fetching repairs:", error);
-      toast({ title: "Erro ao carregar consertos", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 30000,
+  });
 
-  useEffect(() => {
-    fetchRepairs();
-  }, [user]);
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["repairs"] });
 
   const addRepair = async (input: RepairInput) => {
     if (!user) {
@@ -83,8 +71,7 @@ export function useRepairs() {
         .single();
 
       if (error) throw error;
-      
-      setRepairs((prev) => [data, ...prev]);
+      invalidate();
       toast({ title: "Conserto registrado!" });
       return data;
     } catch (error: any) {
@@ -104,8 +91,7 @@ export function useRepairs() {
         .single();
 
       if (error) throw error;
-      
-      setRepairs((prev) => prev.map((r) => (r.id === id ? data : r)));
+      invalidate();
       toast({ title: "Conserto atualizado!" });
       return data;
     } catch (error: any) {
@@ -115,32 +101,19 @@ export function useRepairs() {
     }
   };
 
-  const startRepair = async (id: string) => {
-    return updateRepair(id, { status: "em_andamento" });
-  };
+  const startRepair = async (id: string) => updateRepair(id, { status: "em_andamento" });
 
   const finishRepair = async (id: string, value: number) => {
-    return updateRepair(id, { 
-      status: "pronto", 
-      value, 
-      finished_at: new Date().toISOString() 
-    });
+    return updateRepair(id, { status: "pronto", value, finished_at: new Date().toISOString() });
   };
 
-  const deliverRepair = async (id: string) => {
-    return updateRepair(id, { status: "entregue" });
-  };
+  const deliverRepair = async (id: string) => updateRepair(id, { status: "entregue" });
 
   const deleteRepair = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("repairs")
-        .delete()
-        .eq("id", id);
-
+      const { error } = await supabase.from("repairs").delete().eq("id", id);
       if (error) throw error;
-      
-      setRepairs((prev) => prev.filter((r) => r.id !== id));
+      invalidate();
       toast({ title: "Conserto removido" });
       return true;
     } catch (error: any) {
@@ -159,6 +132,6 @@ export function useRepairs() {
     finishRepair,
     deliverRepair,
     deleteRepair,
-    refetch: fetchRepairs,
+    refetch: invalidate,
   };
 }
