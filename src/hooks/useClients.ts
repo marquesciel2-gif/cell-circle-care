@@ -34,15 +34,25 @@ export function useClients() {
       return;
     }
 
+    setLoading(true);
     try {
-      // Usar função segura que retorna dados baseado no papel do usuário
-      const { data, error } = await supabase.rpc("get_clients_for_user");
+      const result = await Promise.race([
+        supabase.rpc("get_clients_for_user"),
+        new Promise<{ data: null; error: Error }>((resolve) =>
+          setTimeout(
+            () => resolve({ data: null, error: new Error("Tempo esgotado ao carregar clientes") }),
+            15000
+          )
+        ),
+      ]);
 
+      const { data, error } = result as { data: Client[] | null; error: any };
       if (error) throw error;
       setClients((data as Client[]) || []);
     } catch (error: any) {
       console.error("Error fetching clients:", error);
-      toast.error("Erro ao carregar clientes");
+      toast.error(error?.message || "Erro ao carregar clientes");
+      setClients([]);
     } finally {
       setLoading(false);
     }
