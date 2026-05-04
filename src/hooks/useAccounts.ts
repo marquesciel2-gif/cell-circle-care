@@ -90,7 +90,11 @@ export function useAccounts() {
       return data;
     } catch (error: any) {
       console.error("Error adding account:", error);
-      toast({ title: "Erro ao registrar conta", variant: "destructive" });
+      toast({
+        title: "Erro ao registrar conta",
+        description: error?.message || "Tente novamente.",
+        variant: "destructive",
+      });
       return null;
     }
   };
