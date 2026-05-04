@@ -29,7 +29,7 @@ export function ReportsSection() {
           </TabsTrigger>
           <TabsTrigger value="contas" className="gap-2">
             <FileText className="h-4 w-4" />
-            Contas
+            Contas a Receber
           </TabsTrigger>
           <TabsTrigger value="despesas" className="gap-2">
             <Wallet className="h-4 w-4" />
