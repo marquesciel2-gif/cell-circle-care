@@ -41,7 +41,7 @@ export function AddAccountModal({ open, onClose, onAdd }: AddAccountModalProps) 
       descricao,
       valor: parseFloat(valor),
       valorPago: parseFloat(valorPago) || 0,
-      dataVencimento: formatDate(dataVencimento),
+      dataVencimento, // ISO yyyy-mm-dd do <input type="date">
       formaPagamento,
       numeroParcelas: numeroParcelas ? parseInt(numeroParcelas) : undefined,
     });
