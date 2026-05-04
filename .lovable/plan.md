@@ -1,43 +1,63 @@
+## Problemas
 
+**1. "Contas" com ícone (parecendo emoji) em Relatórios**
+Na seção Relatórios, a aba aparece apenas como "Contas" acompanhada do ícone FileText — visualmente parece "Contas + emoji". O rótulo correto é "Contas a Receber".
 
-# Corrigir Edge Function de Criar Colaboradores
+Local: `src/components/reports/ReportsSection.tsx` (linha 32).
 
-## Problema
-A funcao backend de criar colaboradores retorna "non-2xx status code" porque:
-1. A configuracao JWT nao esta definida no arquivo de configuracao, causando falhas de autenticacao
-2. O frontend nao extrai corretamente a mensagem de erro do corpo da resposta quando o backend retorna erro
+**2. Aba "Clientes" trava ao abrir**
+Verifiquei a base de dados: existem apenas 3 clientes, então não é volume. O hook `useClients` chama `supabase.rpc("get_clients_for_user")`, que faz uma subconsulta `EXISTS` em `accounts_receivable` para calcular `tem_debito`. Não encontrei erro de runtime nem log capturado (a sessão atual está na tela de login, então não deu para reproduzir o travamento ao vivo).
 
-## Solucao
+Causas mais prováveis do "trava":
+- Se a chamada RPC falha silenciosamente, o estado `loading` fica `true` para sempre porque o `setLoading(false)` está no `finally` — isso, na prática, não trava, mas se uma exceção é lançada antes, o spinner gira eternamente. Já está protegido.
+- A subconsulta `EXISTS` pode demorar caso `accounts_receivable` cresça e não tenha índice em `client_id`.
+- O AlertDialog de exclusão é renderizado para cada cliente dentro do `.map`. Com poucos clientes não trava, mas o padrão pode ficar pesado e congelar o input ao abrir/fechar.
 
-### 1. Configurar `verify_jwt = false` no config.toml
-Adicionar a configuracao para que a validacao do JWT seja feita no codigo da funcao (que ja faz isso corretamente) em vez de ser feita automaticamente pelo sistema, que pode falhar com signing-keys.
+## Correções
 
-### 2. Corrigir tratamento de erros no frontend (TeamSection.tsx)
-Quando `supabase.functions.invoke` recebe um status non-2xx, ele coloca o erro em `response.error` como um objeto `FunctionsHttpError`. O corpo da resposta com a mensagem detalhada precisa ser extraido via `response.error.context.json()`.
+### Corrigir rótulo da aba (rápido)
+Em `src/components/reports/ReportsSection.tsx`, alterar o texto da TabsTrigger de `"Contas"` para `"Contas a Receber"`.
 
-Atualizar o `handleAddMember` para:
-- Extrair a mensagem de erro real do corpo da resposta
-- Exibir mensagens detalhadas vindas do backend
+### Endurecer a aba Clientes contra travamento
+- Adicionar timeout/abort à chamada RPC em `useClients.ts` para que, se a requisição demorar demais, o `loading` seja resolvido e uma mensagem de erro apareça (em vez de spinner infinito).
+- Garantir que o `setLoading(false)` execute mesmo se `user` mudar no meio da chamada.
+- Criar índice em `accounts_receivable(client_id, status)` para acelerar a subconsulta `EXISTS` usada no `get_clients_for_user`.
+- (Defensivo) Mover o `AlertDialog` de exclusão para um único componente com estado controlado (um cliente alvo por vez) em vez de renderizar um dialog por linha. Isso reduz o custo de render e evita travamentos quando a lista crescer.
 
-### Detalhes Tecnicos
+## Detalhes Técnicos
 
-**config.toml** - Adicionar:
-```toml
-[functions.create-collaborator]
-verify_jwt = false
+**ReportsSection.tsx (linha 30-33)**
+```tsx
+<TabsTrigger value="contas" className="gap-2">
+  <FileText className="h-4 w-4" />
+  Contas a Receber
+</TabsTrigger>
 ```
 
-**TeamSection.tsx** - Corrigir o bloco de tratamento de erro:
-```typescript
-if (response.error) {
-  let errorMsg = "Erro ao cadastrar colaborador";
-  try {
-    const errorBody = await response.error.context?.json();
-    if (errorBody?.error) errorMsg = errorBody.error;
-  } catch {
-    errorMsg = response.error.message || errorMsg;
-  }
-  throw new Error(errorMsg);
-}
+**useClients.ts** — adicionar timeout e log explícito:
+```ts
+const { data, error } = await Promise.race([
+  supabase.rpc("get_clients_for_user"),
+  new Promise<never>((_, rej) =>
+    setTimeout(() => rej(new Error("Tempo esgotado ao carregar clientes")), 15000)
+  ),
+]) as any;
 ```
 
+**Migração SQL** — índice para acelerar `tem_debito`:
+```sql
+CREATE INDEX IF NOT EXISTS idx_accounts_receivable_client_status
+  ON public.accounts_receivable (client_id, status);
+```
+
+**ClientsSection.tsx** — refatorar para um único `<AlertDialog>` controlado por `deletingClient` em vez de um por item.
+
+## Arquivos afetados
+- `src/components/reports/ReportsSection.tsx` (rótulo da aba)
+- `src/hooks/useClients.ts` (timeout e tratamento de erro)
+- `src/components/clients/ClientsSection.tsx` (AlertDialog único controlado)
+- nova migração SQL (índice em `accounts_receivable`)
+
+## Validação
+- Abrir Relatórios → conferir aba "Contas a Receber" com ícone correto.
+- Abrir aba Clientes → lista carrega ou exibe erro em até 15s; excluir um cliente continua funcionando.
