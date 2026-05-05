@@ -142,6 +142,7 @@ export function RepairsSection() {
   
   const pendentes = filteredRepairs.filter(r => r.status === "pendente" || r.status === "em_andamento");
   const prontos = filteredRepairs.filter(r => r.status === "pronto");
+  const entregues = filteredRepairs.filter(r => r.status === "entregue");
 
   const handleAddRepair = async (data: { client_name: string; device: string; problem: string }) => {
     await addRepair({
@@ -228,7 +229,7 @@ export function RepairsSection() {
 
       {/* Tabs */}
       <Tabs defaultValue="pendentes" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-xl grid-cols-3">
           <TabsTrigger value="pendentes" className="gap-2">
             <Clock className="h-4 w-4" />
             Pendentes ({pendentes.length})
@@ -236,6 +237,10 @@ export function RepairsSection() {
           <TabsTrigger value="prontos" className="gap-2">
             <CheckCircle2 className="h-4 w-4" />
             Prontos ({prontos.length})
+          </TabsTrigger>
+          <TabsTrigger value="entregues" className="gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            Entregues ({entregues.length})
           </TabsTrigger>
         </TabsList>
 
@@ -270,6 +275,29 @@ export function RepairsSection() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {prontos.map((repair) => (
+                <RepairCard 
+                  key={repair.id} 
+                  repair={repair}
+                  onStart={handleStart}
+                  onFinish={handleOpenFinish}
+                  onDeliver={handleDeliver}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  canEdit={canEdit}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="entregues" className="mt-4">
+          {entregues.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
+              Nenhum conserto entregue.
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {entregues.map((repair) => (
                 <RepairCard 
                   key={repair.id} 
                   repair={repair}
