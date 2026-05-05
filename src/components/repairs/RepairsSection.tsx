@@ -142,6 +142,7 @@ export function RepairsSection() {
   
   const pendentes = filteredRepairs.filter(r => r.status === "pendente" || r.status === "em_andamento");
   const prontos = filteredRepairs.filter(r => r.status === "pronto");
+  const entregues = filteredRepairs.filter(r => r.status === "entregue");
 
   const handleAddRepair = async (data: { client_name: string; device: string; problem: string }) => {
     await addRepair({
