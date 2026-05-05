@@ -289,6 +289,29 @@ export function RepairsSection() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="entregues" className="mt-4">
+          {entregues.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
+              Nenhum conserto entregue.
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {entregues.map((repair) => (
+                <RepairCard 
+                  key={repair.id} 
+                  repair={repair}
+                  onStart={handleStart}
+                  onFinish={handleOpenFinish}
+                  onDeliver={handleDeliver}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  canEdit={canEdit}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* Modals */}
