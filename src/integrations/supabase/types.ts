@@ -252,6 +252,7 @@ export type Database = {
           client_name: string
           created_at: string
           created_by: string
+          delivered_at: string | null
           device: string
           finished_at: string | null
           id: string
@@ -267,6 +268,7 @@ export type Database = {
           client_name: string
           created_at?: string
           created_by: string
+          delivered_at?: string | null
           device: string
           finished_at?: string | null
           id?: string
@@ -282,6 +284,7 @@ export type Database = {
           client_name?: string
           created_at?: string
           created_by?: string
+          delivered_at?: string | null
           device?: string
           finished_at?: string | null
           id?: string
