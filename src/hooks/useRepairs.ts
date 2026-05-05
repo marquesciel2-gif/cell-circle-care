@@ -17,6 +17,7 @@ export interface Repair {
   created_at: string;
   updated_at: string;
   finished_at: string | null;
+  delivered_at: string | null;
 }
 
 export interface RepairInput {
@@ -107,7 +108,7 @@ export function useRepairs() {
     return updateRepair(id, { status: "pronto", value, finished_at: new Date().toISOString() });
   };
 
-  const deliverRepair = async (id: string) => updateRepair(id, { status: "entregue" });
+  const deliverRepair = async (id: string) => updateRepair(id, { status: "entregue", delivered_at: new Date().toISOString() });
 
   const deleteRepair = async (id: string) => {
     try {

@@ -93,7 +93,11 @@ function RepairCard({ repair, onStart, onFinish, onDeliver, onEdit, onDelete, ca
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar className="h-4 w-4" />
-          <span>Entrada: {format(new Date(repair.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+          {repair.status === "entregue" && repair.delivered_at ? (
+            <span>Entregue em: {format(new Date(repair.delivered_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+          ) : (
+            <span>Entrada: {format(new Date(repair.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+          )}
         </div>
       </div>
 

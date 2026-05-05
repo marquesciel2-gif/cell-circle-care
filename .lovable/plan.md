@@ -1,27 +1,20 @@
-## Problema
+## Objetivo
 
-Ao clicar em "Adicionar Conta" no modal de Nova Conta a Receber, o cadastro falha silenciosamente (toast "Erro ao registrar conta").
+Na aba "Entregues" de Consertos, exibir a **data em que o aparelho foi entregue ao cliente** em vez da data de entrada/previsão.
 
-## Causa raiz
+## Mudanças
 
-No `AddAccountModal.tsx`, a data de vencimento é convertida com `formatDate()` para o formato brasileiro `dd/MM/yyyy` antes de enviar ao backend. A coluna `vencimento` em `accounts_receivable` é do tipo `date` no Postgres e exige formato ISO `YYYY-MM-DD`. O Supabase rejeita o INSERT por formato de data inválido.
+### 1. Banco de dados
+Adicionar coluna `delivered_at` (timestamp) na tabela `repairs`. Não dá para reaproveitar `finished_at` porque esse já marca o momento em que o conserto fica "pronto" (antes da entrega).
 
-```ts
-// AddAccountModal.tsx (linha 44)
-dataVencimento: formatDate(dataVencimento), // vira "04/05/2026" → INSERT falha
-```
+### 2. `src/hooks/useRepairs.ts`
+- Incluir `delivered_at` na interface `Repair`.
+- Em `deliverRepair`, gravar `delivered_at: new Date().toISOString()` junto com `status: "entregue"`.
 
-## Correção
+### 3. `src/components/repairs/RepairsSection.tsx`
+No `RepairCard`, na linha de data:
+- Se `status === "entregue"` e existir `delivered_at` → mostrar `Entregue em: dd/MM/yyyy`.
+- Caso contrário → manter `Entrada: dd/MM/yyyy` como hoje.
 
-1. Em `src/components/modals/AddAccountModal.tsx`: enviar `dataVencimento` no formato ISO original do `<input type="date">` (`YYYY-MM-DD`), removendo a chamada `formatDate()`. A função `formatDate` pode ser removida pois não é mais usada.
-
-2. Em `src/hooks/useAccounts.ts`: melhorar a mensagem de erro do toast incluindo o `error.message` retornado pelo Supabase, para facilitar diagnóstico futuro.
-
-## Arquivos afetados
-
-- `src/components/modals/AddAccountModal.tsx`
-- `src/hooks/useAccounts.ts`
-
-## Validação
-
-- Cadastrar uma nova conta a receber → toast "Conta registrada!" e a conta aparece na lista.
+## Observação
+Consertos já entregues antes desta mudança não terão `delivered_at` preenchido — para esses, será exibida a data de entrada como fallback.
