@@ -229,7 +229,7 @@ export function RepairsSection() {
 
       {/* Tabs */}
       <Tabs defaultValue="pendentes" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-xl grid-cols-3">
           <TabsTrigger value="pendentes" className="gap-2">
             <Clock className="h-4 w-4" />
             Pendentes ({pendentes.length})
@@ -237,6 +237,10 @@ export function RepairsSection() {
           <TabsTrigger value="prontos" className="gap-2">
             <CheckCircle2 className="h-4 w-4" />
             Prontos ({prontos.length})
+          </TabsTrigger>
+          <TabsTrigger value="entregues" className="gap-2">
+            <CheckCircle2 className="h-4 w-4" />
+            Entregues ({entregues.length})
           </TabsTrigger>
         </TabsList>
 
