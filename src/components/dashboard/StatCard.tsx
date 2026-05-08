@@ -10,6 +10,7 @@ interface StatCardProps {
     isPositive: boolean;
   };
   variant?: "primary" | "success" | "warning" | "danger";
+  onClick?: () => void;
 }
 const variantStyles = {
   primary: "gradient-primary",
@@ -23,9 +24,16 @@ export function StatCard({
   subtitle,
   icon: Icon,
   trend,
-  variant = "primary"
+  variant = "primary",
+  onClick
 }: StatCardProps) {
-  return <div className="stat-card animate-fade-in">
+  return <div
+      className={cn("stat-card animate-fade-in", onClick && "cursor-pointer transition-transform hover:-translate-y-0.5 hover:shadow-md")}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+    >
       <div className={cn("stat-card-gradient", variantStyles[variant])} />
       <div className="relative">
         <div className="flex items-start justify-between">
