@@ -217,6 +217,10 @@ export function RepairsSection() {
     await deleteRepair(id);
   };
 
+  const handleChangeDeliveredAt = async (id: string, date: Date) => {
+    await updateRepair(id, { delivered_at: date.toISOString() });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
