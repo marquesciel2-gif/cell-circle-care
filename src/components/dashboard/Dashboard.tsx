@@ -89,35 +89,43 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           value={totalEstoque} 
           subtitle="Aparelhos em estoque" 
           icon={Smartphone} 
-          variant="primary" 
+          variant="primary"
+          onClick={() => onNavigate?.("novos")}
         />
         <StatCard 
           title="Consertos Pendentes" 
           value={consertosPendentes} 
           subtitle="Aguardando reparo" 
           icon={Wrench} 
-          variant="warning" 
+          variant="warning"
+          onClick={() => onNavigate?.("consertos")}
         />
         <StatCard 
           title="Consertos Prontos" 
           value={consertosProntos} 
           subtitle="Para retirada" 
           icon={Wrench} 
-          variant="success" 
+          variant="success"
+          onClick={() => onNavigate?.("consertos")}
         />
         <StatCard 
           title="Contas a Receber" 
           value={quantidadeContas} 
           subtitle={`R$ ${totalPendente.toLocaleString('pt-BR')} pendente`} 
           icon={Receipt} 
-          variant="danger" 
+          variant="danger"
+          onClick={() => onNavigate?.("contas")}
         />
       </div>
 
       {/* Caixa */}
       <div className="rounded-xl border border-border bg-card p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => onNavigate?.("despesas")}
+            className="flex items-center gap-4 text-left rounded-lg transition-colors hover:bg-muted/50 -m-2 p-2"
+          >
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10">
               <Wallet className="h-6 w-6 text-success" />
             </div>
@@ -130,7 +138,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 Recebido R$ {totalRecebido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} − Despesas R$ {totalDespesasPagas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </div>
-          </div>
+          </button>
           <Button onClick={() => setWithdrawOpen(true)} className="gradient-primary text-primary-foreground border-0">
             <ArrowDownCircle className="mr-2 h-4 w-4" />
             Retirar
@@ -140,7 +148,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
       {/* Secondary Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="stat-card">
+        <button type="button" onClick={() => onNavigate?.("novos")} className="stat-card text-left cursor-pointer transition-transform hover:-translate-y-0.5 hover:shadow-md">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
               <Smartphone className="h-6 w-6 text-primary" />
@@ -150,8 +158,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               <p className="text-2xl font-bold">{totalNovos}</p>
             </div>
           </div>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button type="button" onClick={() => onNavigate?.("usados")} className="stat-card text-left cursor-pointer transition-transform hover:-translate-y-0.5 hover:shadow-md">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10">
               <Package className="h-6 w-6 text-accent" />
@@ -161,8 +169,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               <p className="text-2xl font-bold">{totalUsados}</p>
             </div>
           </div>
-        </div>
-        <div className="stat-card">
+        </button>
+        <button type="button" onClick={() => onNavigate?.("acessorios")} className="stat-card text-left cursor-pointer transition-transform hover:-translate-y-0.5 hover:shadow-md">
           <div className="flex items-center gap-4">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10">
               <Headphones className="h-6 w-6 text-success" />
@@ -172,7 +180,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               <p className="text-2xl font-bold">{totalAcessorios}</p>
             </div>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Quick Actions */}
