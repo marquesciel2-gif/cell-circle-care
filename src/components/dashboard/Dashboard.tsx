@@ -176,6 +176,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               <Headphones className="h-6 w-6 text-success" />
             </div>
             <div>
+              <p className="text-sm text-muted-foreground">Acessórios</p>
+              <p className="text-2xl font-bold">{totalAcessorios}</p>
+            </div>
+          </div>
+        </button>
+      </div>
 
       {/* Quick Actions */}
       <div className="max-w-md">
