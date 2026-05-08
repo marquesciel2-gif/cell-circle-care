@@ -56,10 +56,11 @@ interface RepairCardProps {
   onDeliver: (id: string) => void;
   onEdit: (repair: Repair) => void;
   onDelete: (id: string) => void;
+  onChangeDeliveredAt?: (id: string, date: Date) => void;
   canEdit: boolean;
 }
 
-function RepairCard({ repair, onStart, onFinish, onDeliver, onEdit, onDelete, canEdit }: RepairCardProps) {
+function RepairCard({ repair, onStart, onFinish, onDeliver, onEdit, onDelete, onChangeDeliveredAt, canEdit }: RepairCardProps) {
   const config = statusConfig[repair.status as keyof typeof statusConfig] || statusConfig.pendente;
   const StatusIcon = config.icon;
 
