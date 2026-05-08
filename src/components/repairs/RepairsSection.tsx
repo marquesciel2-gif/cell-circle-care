@@ -336,6 +336,7 @@ export function RepairsSection() {
                   onDeliver={handleDeliver}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onChangeDeliveredAt={handleChangeDeliveredAt}
                   canEdit={canEdit}
                 />
               ))}
