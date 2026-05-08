@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { AddRepairModal } from "@/components/modals/AddRepairModal";
 import { EditRepairModal } from "@/components/modals/EditRepairModal";
 import { FinishRepairModal } from "@/components/modals/FinishRepairModal";
@@ -54,10 +56,11 @@ interface RepairCardProps {
   onDeliver: (id: string) => void;
   onEdit: (repair: Repair) => void;
   onDelete: (id: string) => void;
+  onChangeDeliveredAt?: (id: string, date: Date) => void;
   canEdit: boolean;
 }
 
-function RepairCard({ repair, onStart, onFinish, onDeliver, onEdit, onDelete, canEdit }: RepairCardProps) {
+function RepairCard({ repair, onStart, onFinish, onDeliver, onEdit, onDelete, onChangeDeliveredAt, canEdit }: RepairCardProps) {
   const config = statusConfig[repair.status as keyof typeof statusConfig] || statusConfig.pendente;
   const StatusIcon = config.icon;
 
@@ -94,7 +97,26 @@ function RepairCard({ repair, onStart, onFinish, onDeliver, onEdit, onDelete, ca
         <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar className="h-4 w-4" />
           {repair.status === "entregue" && repair.delivered_at ? (
-            <span>Entregue em: {format(new Date(repair.delivered_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+            canEdit && onChangeDeliveredAt ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-left underline-offset-2 hover:underline">
+                    Entregue em: {format(new Date(repair.delivered_at), "dd/MM/yyyy", { locale: ptBR })}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarPicker
+                    mode="single"
+                    selected={new Date(repair.delivered_at)}
+                    onSelect={(d) => d && onChangeDeliveredAt(repair.id, d)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <span>Entregue em: {format(new Date(repair.delivered_at), "dd/MM/yyyy", { locale: ptBR })}</span>
+            )
           ) : (
             <span>Entrada: {format(new Date(repair.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
           )}
@@ -193,6 +215,10 @@ export function RepairsSection() {
 
   const handleDelete = async (id: string) => {
     await deleteRepair(id);
+  };
+
+  const handleChangeDeliveredAt = async (id: string, date: Date) => {
+    await updateRepair(id, { delivered_at: date.toISOString() });
   };
 
   if (loading) {
@@ -310,6 +336,7 @@ export function RepairsSection() {
                   onDeliver={handleDeliver}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onChangeDeliveredAt={handleChangeDeliveredAt}
                   canEdit={canEdit}
                 />
               ))}
