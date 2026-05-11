@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { AddInventoryModal } from "@/components/modals/AddInventoryModal";
-import { useInventory, InventoryInput } from "@/hooks/useInventory";
+import { SellInventoryModal, SellPayload } from "@/components/inventory/SellInventoryModal";
+import { useInventory, InventoryInput, InventoryItem } from "@/hooks/useInventory";
+import { useAccounts } from "@/hooks/useAccounts";
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface InventoryTableProps {
