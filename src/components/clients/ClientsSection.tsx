@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useClients, Client, ClientInput } from "@/hooks/useClients";
 import { AddClientModal } from "@/components/modals/AddClientModal";
 import { EditClientModal } from "@/components/modals/EditClientModal";
+import { ClientDetailDrawer } from "@/components/clients/ClientDetailDrawer";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
