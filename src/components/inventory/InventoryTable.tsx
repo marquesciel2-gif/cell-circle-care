@@ -181,7 +181,7 @@ export function InventoryTable({ title, type }: InventoryTableProps) {
                                 variant="ghost" 
                                 size="icon" 
                                 className="h-8 w-8 text-success"
-                                onClick={() => handleSell(item)}
+                                onClick={() => setSellItem(item)}
                                 title="Vender"
                               >
                                 <ShoppingCart className="h-4 w-4" />
