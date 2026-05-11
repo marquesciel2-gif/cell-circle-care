@@ -26,6 +26,7 @@ export function ClientsSection() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [deletingClient, setDeletingClient] = useState<Client | null>(null);
+  const [drawerClient, setDrawerClient] = useState<Client | null>(null);
 
   const filteredClients = clients.filter(
     (client) =>
