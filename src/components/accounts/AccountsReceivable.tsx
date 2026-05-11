@@ -239,7 +239,13 @@ export function AccountsReceivable() {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="font-semibold text-foreground">{account.client_name}</h3>
+                      <button
+                        type="button"
+                        onClick={() => setClientDrawer({ id: account.client_id, name: account.client_name })}
+                        className="font-semibold text-foreground hover:text-primary underline-offset-2 hover:underline"
+                      >
+                        {account.client_name}
+                      </button>
                       <Badge variant="outline" className={cn("text-xs", config.className)}>
                         <StatusIcon className="mr-1 h-3 w-3" />
                         {config.label}
