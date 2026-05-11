@@ -113,17 +113,18 @@ export function AccountsReceivable() {
     setEditModalOpen(true);
   };
 
-  const handleSaveEdit = async (updatedAccount: any) => {
-    if (selectedAccount) {
-      await updateAccount(selectedAccount.id, {
-        client_name: updatedAccount.cliente,
-        descricao: updatedAccount.descricao,
-        valor_total: updatedAccount.valor,
-        valor_pago: updatedAccount.valorPago,
-        forma_pagamento: updatedAccount.formaPagamento,
-      });
-      setEditModalOpen(false);
-    }
+  const handleSaveEdit = async (id: string, payload: EditAccountPayload) => {
+    await updateAccount(id, {
+      client_id: payload.client_id || undefined,
+      client_name: payload.client_name,
+      descricao: payload.descricao,
+      valor_total: payload.valor_total,
+      valor_pago: payload.valor_pago,
+      forma_pagamento: payload.forma_pagamento,
+      parcelas: payload.parcelas,
+      vencimento: payload.vencimento,
+    });
+    setEditModalOpen(false);
   };
 
   const openReceiveModal = (account: Account) => {
