@@ -1,48 +1,56 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Repair } from "@/types";
+import { Repair } from "@/hooks/useRepairs";
+import { ClientPicker } from "@/components/clients/ClientPicker";
+
+export interface EditRepairPayload {
+  device: string;
+  client_name: string;
+  client_id?: string | null;
+  problem: string;
+  notes?: string;
+  value?: number | null;
+}
 
 interface EditRepairModalProps {
   open: boolean;
   onClose: () => void;
   repair: Repair | null;
-  onSave: (repair: Repair) => void;
+  onSave: (id: string, payload: EditRepairPayload) => void;
 }
 
 export function EditRepairModal({ open, onClose, repair, onSave }: EditRepairModalProps) {
-  const [aparelho, setAparelho] = useState("");
-  const [cliente, setCliente] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [problema, setProblema] = useState("");
-  const [previsao, setPrevisao] = useState("");
+  const [device, setDevice] = useState("");
+  const [clientName, setClientName] = useState("");
+  const [clientId, setClientId] = useState<string | null>(null);
+  const [problem, setProblem] = useState("");
+  const [notes, setNotes] = useState("");
   const [valor, setValor] = useState("");
 
   useEffect(() => {
     if (repair) {
-      setAparelho(repair.aparelho);
-      setCliente(repair.cliente);
-      setTelefone(repair.telefone);
-      setProblema(repair.problema);
-      setPrevisao(repair.previsao);
-      setValor(repair.valor?.toString() || "");
+      setDevice(repair.device);
+      setClientName(repair.client_name);
+      setClientId(repair.client_id);
+      setProblem(repair.problem);
+      setNotes(repair.notes || "");
+      setValor(repair.value != null ? String(repair.value) : "");
     }
   }, [repair]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!repair || !aparelho || !cliente || !telefone || !problema) return;
+    if (!repair || !device || !clientName || !problem) return;
 
-    onSave({
-      ...repair,
-      aparelho,
-      cliente,
-      telefone,
-      problema,
-      previsao,
-      valor: valor ? parseFloat(valor) : undefined,
+    onSave(repair.id, {
+      device,
+      client_name: clientName,
+      client_id: clientId,
+      problem,
+      notes: notes || undefined,
+      value: valor ? parseFloat(valor) : null,
     });
-
     onClose();
   };
 
@@ -57,9 +65,8 @@ export function EditRepairModal({ open, onClose, repair, onSave }: EditRepairMod
             <label className="text-sm font-medium text-foreground">Aparelho *</label>
             <input
               type="text"
-              value={aparelho}
-              onChange={(e) => setAparelho(e.target.value)}
-              placeholder="Ex: iPhone 12 - Tela quebrada"
+              value={device}
+              onChange={(e) => setDevice(e.target.value)}
               className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               required
             />
@@ -68,59 +75,48 @@ export function EditRepairModal({ open, onClose, repair, onSave }: EditRepairMod
             <label className="text-sm font-medium text-foreground">Problema / Serviço *</label>
             <input
               type="text"
-              value={problema}
-              onChange={(e) => setProblema(e.target.value)}
-              placeholder="Ex: Troca de tela"
+              value={problem}
+              onChange={(e) => setProblem(e.target.value)}
               className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-foreground">Cliente *</label>
-              <input
-                type="text"
-                value={cliente}
-                onChange={(e) => setCliente(e.target.value)}
-                placeholder="Nome do cliente"
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Telefone *</label>
-              <input
-                type="tel"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
-                placeholder="(00) 00000-0000"
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                required
-              />
-            </div>
+          <div>
+            <label className="text-sm font-medium text-foreground">Cliente *</label>
+            <ClientPicker
+              value={clientName}
+              onChange={setClientName}
+              onSelect={(c) => {
+                if (c) {
+                  setClientId(c.id);
+                  setClientName(c.nome);
+                } else {
+                  setClientId(null);
+                }
+              }}
+              required
+            />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-foreground">Valor (R$)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={valor}
-                onChange={(e) => setValor(e.target.value)}
-                placeholder="0,00"
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Previsão de Entrega</label>
-              <input
-                type="text"
-                value={previsao}
-                onChange={(e) => setPrevisao(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-            </div>
+          <div>
+            <label className="text-sm font-medium text-foreground">Valor (R$)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={valor}
+              onChange={(e) => setValor(e.target.value)}
+              placeholder="0,00"
+              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-foreground">Observações</label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
