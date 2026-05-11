@@ -82,6 +82,7 @@ export function AccountsReceivable() {
 
   const handleAddAccount = async (newAccount: any) => {
     const input: AccountInput = {
+      client_id: newAccount.client_id || undefined,
       client_name: newAccount.cliente,
       descricao: newAccount.descricao,
       valor_total: newAccount.valor,
