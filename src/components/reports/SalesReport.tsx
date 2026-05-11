@@ -1,11 +1,9 @@
 import { useState, useMemo } from "react";
-import { format, isWithinInterval, parse, startOfMonth, endOfMonth } from "date-fns";
+import { format, isWithinInterval, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Search, Calendar, Printer, Package, Smartphone, Headphones } from "lucide-react";
+import { Search, Calendar, Printer, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Sale } from "@/types";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useAccounts } from "@/hooks/useAccounts";
 import {
   Popover,
   PopoverContent,
@@ -13,192 +11,132 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
-const tipoLabels = {
-  novos: "Novos",
-  usados: "Usados",
-  acessorios: "Acessórios",
-};
-
-const tipoIcons = {
-  novos: Smartphone,
-  usados: Package,
-  acessorios: Headphones,
+const PAYMENT_LABELS: Record<string, string> = {
+  promissoria: "Promissória",
+  avista: "À Vista",
+  cartao: "Cartão",
 };
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--secondary))"];
 
 export function SalesReport() {
-  const [sales] = useLocalStorage<Sale[]>("sales", []);
+  const { accounts, loading } = useAccounts();
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
 
-  const filteredSales = useMemo(() => {
-    return sales.filter((sale) => {
-      // Search filter
-      const matchesSearch =
-        sale.itemNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (sale.cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
+  // "Vendas" = contas geradas por vendas de estoque (descrição começa com "Venda")
+  const sales = useMemo(
+    () => accounts.filter((a) => a.descricao.toLowerCase().startsWith("venda")),
+    [accounts]
+  );
 
-      // Date filter
-      let matchesDate = true;
+  const filtered = useMemo(() => {
+    return sales.filter((s) => {
+      const matchSearch =
+        s.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.client_name.toLowerCase().includes(searchTerm.toLowerCase());
+      let matchDate = true;
       if (dateRange.from && dateRange.to) {
-        try {
-          const saleDate = parse(sale.dataVenda, "dd/MM/yyyy", new Date());
-          matchesDate = isWithinInterval(saleDate, {
-            start: dateRange.from,
-            end: dateRange.to,
-          });
-        } catch {
-          matchesDate = true;
-        }
+        const d = parseISO(s.created_at);
+        matchDate = isWithinInterval(d, { start: dateRange.from, end: dateRange.to });
       }
-
-      return matchesSearch && matchesDate;
+      return matchSearch && matchDate;
     });
   }, [sales, searchTerm, dateRange]);
 
-  const totalByType = useMemo(() => {
-    return filteredSales.reduce(
-      (acc, sale) => {
-        acc[sale.tipo] = (acc[sale.tipo] || 0) + sale.preco;
-        acc.total += sale.preco;
+  const totalByPayment = useMemo(() => {
+    return filtered.reduce(
+      (acc, s) => {
+        const key = s.forma_pagamento;
+        acc[key] = (acc[key] || 0) + s.valor_total;
+        acc.total += s.valor_total;
         return acc;
       },
-      { novos: 0, usados: 0, acessorios: 0, total: 0 } as Record<string, number>
+      { total: 0 } as Record<string, number>
     );
-  }, [filteredSales]);
+  }, [filtered]);
 
-  const pieChartData = useMemo(() => {
-    return [
-      { name: "Novos", value: totalByType.novos },
-      { name: "Usados", value: totalByType.usados },
-      { name: "Acessórios", value: totalByType.acessorios },
-    ].filter((item) => item.value > 0);
-  }, [totalByType]);
+  const pieData = useMemo(
+    () =>
+      Object.entries(totalByPayment)
+        .filter(([k]) => k !== "total")
+        .map(([k, v]) => ({ name: PAYMENT_LABELS[k] || k, value: v }))
+        .filter((d) => d.value > 0),
+    [totalByPayment]
+  );
 
-  const barChartData = useMemo(() => {
-    const salesByDate: Record<string, number> = {};
-    filteredSales.forEach((sale) => {
-      if (!salesByDate[sale.dataVenda]) {
-        salesByDate[sale.dataVenda] = 0;
-      }
-      salesByDate[sale.dataVenda] += sale.preco;
+  const barData = useMemo(() => {
+    const byDate: Record<string, number> = {};
+    filtered.forEach((s) => {
+      const d = format(parseISO(s.created_at), "dd/MM/yyyy");
+      byDate[d] = (byDate[d] || 0) + s.valor_total;
     });
-    return Object.entries(salesByDate)
+    return Object.entries(byDate)
       .map(([date, value]) => ({ date, value }))
-      .sort((a, b) => {
-        const dateA = parse(a.date, "dd/MM/yyyy", new Date());
-        const dateB = parse(b.date, "dd/MM/yyyy", new Date());
-        return dateA.getTime() - dateB.getTime();
-      })
+      .sort((a, b) => a.date.localeCompare(b.date))
       .slice(-7);
-  }, [filteredSales]);
+  }, [filtered]);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {/* Summary Cards */}
+      {/* Summary */}
       <div className="grid gap-4 sm:grid-cols-4">
-        {(["novos", "usados", "acessorios"] as const).map((tipo) => {
-          const Icon = tipoIcons[tipo];
-          return (
-            <div key={tipo} className="stat-card">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <Icon className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{tipoLabels[tipo]}</p>
-                  <p className="text-lg font-bold text-foreground">
-                    R$ {totalByType[tipo].toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {(["avista", "cartao", "promissoria"] as const).map((k) => (
+          <div key={k} className="stat-card">
+            <p className="text-sm text-muted-foreground">{PAYMENT_LABELS[k]}</p>
+            <p className="text-lg font-bold text-foreground">
+              R$ {(totalByPayment[k] || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </p>
+          </div>
+        ))}
         <div className="stat-card">
           <div className="stat-card-gradient gradient-primary" />
           <div className="relative">
             <p className="text-sm text-muted-foreground">Total Vendas</p>
             <p className="text-xl font-bold text-primary">
-              R$ {totalByType.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              R$ {totalByPayment.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </p>
           </div>
         </div>
       </div>
 
       {/* Charts */}
-      {filteredSales.length > 0 && (
+      {filtered.length > 0 && (
         <div className="grid gap-4 lg:grid-cols-2 print:hidden">
-          {/* Pie Chart - Sales by Category */}
           <div className="rounded-xl border border-border bg-card p-4">
-            <h3 className="text-sm font-medium text-foreground mb-4">Vendas por Categoria</h3>
+            <h3 className="text-sm font-medium text-foreground mb-4">Vendas por Forma de Pagamento</h3>
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie
-                    data={pieChartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={5}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {pieChartData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
-                  <Tooltip
-                    formatter={(value: number) =>
-                      `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                    }
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
+                  <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} contentStyle={{ backgroundColor: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           </div>
-
-          {/* Bar Chart - Sales by Day */}
           <div className="rounded-xl border border-border bg-card p-4">
             <h3 className="text-sm font-medium text-foreground mb-4">Vendas por Dia (Últimos 7)</h3>
             <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barChartData}>
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                    tickFormatter={(value) => value.slice(0, 5)}
-                  />
-                  <YAxis
-                    tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                    tickFormatter={(value) => `R$${(value / 1000).toFixed(0)}k`}
-                  />
-                  <Tooltip
-                    formatter={(value: number) =>
-                      `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                    }
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
+                <BarChart data={barData}>
+                  <XAxis dataKey="date" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} tickFormatter={(v) => v.slice(0, 5)} />
+                  <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip formatter={(v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} contentStyle={{ backgroundColor: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
                   <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -223,80 +161,45 @@ export function SalesReport() {
           <PopoverTrigger asChild>
             <Button variant="outline" className="gap-2">
               <Calendar className="h-4 w-4" />
-              {dateRange.from && dateRange.to
-                ? `${format(dateRange.from, "dd/MM")} - ${format(dateRange.to, "dd/MM")}`
-                : "Período"}
+              {dateRange.from && dateRange.to ? `${format(dateRange.from, "dd/MM")} - ${format(dateRange.to, "dd/MM")}` : "Período"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0 bg-popover" align="end">
-            <CalendarComponent
-              mode="range"
-              selected={{ from: dateRange.from, to: dateRange.to }}
-              onSelect={(range) =>
-                setDateRange({ from: range?.from, to: range?.to })
-              }
-              locale={ptBR}
-              className={cn("p-3 pointer-events-auto")}
-            />
+            <CalendarComponent mode="range" selected={{ from: dateRange.from, to: dateRange.to }} onSelect={(r) => setDateRange({ from: r?.from, to: r?.to })} locale={ptBR} className={cn("p-3 pointer-events-auto")} />
           </PopoverContent>
         </Popover>
-        <Button onClick={handlePrint} className="gap-2 print:hidden">
+        <Button onClick={() => window.print()} className="gap-2 print:hidden">
           <Printer className="h-4 w-4" />
           Imprimir
         </Button>
       </div>
 
-      {/* Sales Table */}
+      {/* Table */}
       <div className="table-container print:shadow-none print:border-black">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-muted/50">
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                  Produto
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                  Categoria
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                  Cliente
-                </th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
-                  Valor
-                </th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">
-                  Data
-                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Descrição</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Cliente</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Pagamento</th>
+                <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Valor</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Data</th>
               </tr>
             </thead>
             <tbody>
-              {filteredSales.length === 0 ? (
+              {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                    Nenhuma venda encontrada no período selecionado.
-                  </td>
+                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Nenhuma venda encontrada no período.</td>
                 </tr>
               ) : (
-                filteredSales.map((sale) => (
-                  <tr
-                    key={sale.id}
-                    className="border-b border-border transition-colors hover:bg-muted/30"
-                  >
-                    <td className="px-4 py-3 font-medium text-foreground">{sale.itemNome}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant="secondary" className="text-xs">
-                        {tipoLabels[sale.tipo]}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {sale.cliente || "-"}
-                    </td>
-                    <td className="px-4 py-3 text-right font-medium text-foreground">
-                      R$ {sale.preco.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-4 py-3 text-center text-sm text-muted-foreground">
-                      {sale.dataVenda}
-                    </td>
+                filtered.map((s) => (
+                  <tr key={s.id} className="border-b border-border transition-colors hover:bg-muted/30">
+                    <td className="px-4 py-3 font-medium text-foreground">{s.descricao}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{s.client_name || "-"}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{PAYMENT_LABELS[s.forma_pagamento] || s.forma_pagamento}</td>
+                    <td className="px-4 py-3 text-right font-medium text-foreground">R$ {s.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-3 text-center text-sm text-muted-foreground">{format(parseISO(s.created_at), "dd/MM/yyyy")}</td>
                   </tr>
                 ))
               )}
@@ -305,9 +208,8 @@ export function SalesReport() {
         </div>
       </div>
 
-      {/* Footer */}
       <div className="flex items-center justify-between text-sm text-muted-foreground print:hidden">
-        <span>{filteredSales.length} vendas encontradas</span>
+        <span>{filtered.length} vendas encontradas</span>
       </div>
     </div>
   );
