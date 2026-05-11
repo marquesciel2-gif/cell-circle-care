@@ -70,7 +70,8 @@ export function AccountsReceivable() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  
+  const [clientDrawer, setClientDrawer] = useState<{ id: string | null; name: string } | null>(null);
+
   const { accounts, loading, addAccount, updateAccount, receivePayment, deleteAccount, totalPendente, totalAtrasado } = useAccounts();
   const { isAdmin, isVendedor } = useUserRole();
 
