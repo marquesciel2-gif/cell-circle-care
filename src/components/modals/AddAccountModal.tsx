@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Account } from "@/types";
+import { ClientPicker } from "@/components/clients/ClientPicker";
 
 interface AddAccountModalProps {
   open: boolean;
@@ -68,12 +69,13 @@ export function AddAccountModal({ open, onClose, onAdd }: AddAccountModalProps) 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-foreground">Cliente *</label>
-              <input
-                type="text"
+              <ClientPicker
                 value={cliente}
-                onChange={(e) => setCliente(e.target.value)}
-                placeholder="Nome do cliente"
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                onChange={setCliente}
+                onSelect={(c) => {
+                  setCliente(c.nome);
+                  if (c.telefone) setTelefone(c.telefone);
+                }}
                 required
               />
             </div>

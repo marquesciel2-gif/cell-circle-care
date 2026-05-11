@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ClientPicker } from "@/components/clients/ClientPicker";
 
 interface AddRepairModalProps {
   open: boolean;
@@ -61,12 +62,9 @@ export function AddRepairModal({ open, onClose, onAdd }: AddRepairModalProps) {
           </div>
           <div>
             <label className="text-sm font-medium text-foreground">Cliente *</label>
-            <input
-              type="text"
+            <ClientPicker
               value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-              placeholder="Nome do cliente"
-              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              onChange={setClientName}
               required
             />
           </div>
