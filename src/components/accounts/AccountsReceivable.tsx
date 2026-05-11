@@ -338,8 +338,14 @@ export function AccountsReceivable() {
       <EditAccountModal
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
-        account={selectedAccount ? toOldFormat(selectedAccount) : null}
+        account={selectedAccount}
         onSave={handleSaveEdit}
+      />
+      <ClientDetailDrawer
+        open={!!clientDrawer}
+        onClose={() => setClientDrawer(null)}
+        clientId={clientDrawer?.id ?? null}
+        fallbackName={clientDrawer?.name ?? ""}
       />
       <ReceiptModal
         open={receiptModalOpen}
