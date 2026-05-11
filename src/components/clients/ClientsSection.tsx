@@ -106,12 +106,16 @@ export function ClientsSection() {
               <CardContent className="p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDrawerClient(client)}
+                      className="flex items-center gap-2 text-left hover:text-primary"
+                    >
                       <User className="h-5 w-5 text-primary" />
-                      <h3 className="text-lg font-semibold text-foreground">
+                      <h3 className="text-lg font-semibold text-foreground hover:text-primary underline-offset-2 hover:underline">
                         {client.nome}
                       </h3>
-                    </div>
+                    </button>
 
                     <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
                       {client.telefone && (
