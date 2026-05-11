@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useClients, Client, ClientInput } from "@/hooks/useClients";
 import { AddClientModal } from "@/components/modals/AddClientModal";
 import { EditClientModal } from "@/components/modals/EditClientModal";
+import { ClientDetailDrawer } from "@/components/clients/ClientDetailDrawer";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -26,6 +27,7 @@ export function ClientsSection() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [deletingClient, setDeletingClient] = useState<Client | null>(null);
+  const [drawerClient, setDrawerClient] = useState<Client | null>(null);
 
   const filteredClients = clients.filter(
     (client) =>
@@ -104,12 +106,16 @@ export function ClientsSection() {
               <CardContent className="p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDrawerClient(client)}
+                      className="flex items-center gap-2 text-left hover:text-primary"
+                    >
                       <User className="h-5 w-5 text-primary" />
-                      <h3 className="text-lg font-semibold text-foreground">
+                      <h3 className="text-lg font-semibold text-foreground hover:text-primary underline-offset-2 hover:underline">
                         {client.nome}
                       </h3>
-                    </div>
+                    </button>
 
                     <div className="grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
                       {client.telefone && (
@@ -217,6 +223,13 @@ export function ClientsSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ClientDetailDrawer
+        open={!!drawerClient}
+        onClose={() => setDrawerClient(null)}
+        clientId={drawerClient?.id ?? null}
+        fallbackName={drawerClient?.nome ?? ""}
+      />
     </div>
   );
 }

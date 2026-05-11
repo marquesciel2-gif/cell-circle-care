@@ -1,54 +1,36 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Account } from "@/types";
 import { ClientPicker } from "@/components/clients/ClientPicker";
+import { useClients } from "@/hooks/useClients";
 
 interface AddAccountModalProps {
   open: boolean;
   onClose: () => void;
-  onAdd: (account: Omit<Account, "id" | "status">) => void;
+  onAdd: (account: any) => void;
 }
 
 const paymentMethods = [
-  { value: "promissoria" as const, label: "Promissória" },
-  { value: "avista" as const, label: "À Vista" },
-  { value: "cartao" as const, label: "Cartão" },
+  { value: "promissoria", label: "Promissória" },
+  { value: "avista", label: "À Vista" },
+  { value: "cartao", label: "Cartão" },
 ];
 
 export function AddAccountModal({ open, onClose, onAdd }: AddAccountModalProps) {
+  const { addClient } = useClients();
   const [cliente, setCliente] = useState("");
+  const [clienteId, setClienteId] = useState<string | null>(null);
   const [telefone, setTelefone] = useState("");
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [valorPago, setValorPago] = useState("0");
   const [dataVencimento, setDataVencimento] = useState("");
-  const [formaPagamento, setFormaPagamento] = useState<Account["formaPagamento"]>("avista");
+  const [formaPagamento, setFormaPagamento] = useState("avista");
   const [numeroParcelas, setNumeroParcelas] = useState("");
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr + "T00:00:00");
-    return date.toLocaleDateString("pt-BR");
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!cliente || !telefone || !descricao || !valor || !dataVencimento) return;
-
-    onAdd({
-      cliente,
-      telefone,
-      descricao,
-      valor: parseFloat(valor),
-      valorPago: parseFloat(valorPago) || 0,
-      dataVencimento, // ISO yyyy-mm-dd do <input type="date">
-      formaPagamento,
-      numeroParcelas: numeroParcelas ? parseInt(numeroParcelas) : undefined,
-    });
-
-    // Reset form
+  const reset = () => {
     setCliente("");
+    setClienteId(null);
     setTelefone("");
     setDescricao("");
     setValor("");
@@ -56,6 +38,32 @@ export function AddAccountModal({ open, onClose, onAdd }: AddAccountModalProps) 
     setDataVencimento("");
     setFormaPagamento("avista");
     setNumeroParcelas("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cliente || !descricao || !valor || !dataVencimento) return;
+
+    let resolvedClientId = clienteId;
+    // Auto-cadastrar cliente se não vinculado
+    if (!resolvedClientId) {
+      const created = await addClient({ nome: cliente, telefone: telefone || undefined });
+      if (created) resolvedClientId = created.id;
+    }
+
+    onAdd({
+      cliente,
+      client_id: resolvedClientId,
+      telefone,
+      descricao,
+      valor: parseFloat(valor),
+      valorPago: parseFloat(valorPago) || 0,
+      dataVencimento,
+      formaPagamento,
+      numeroParcelas: numeroParcelas ? parseInt(numeroParcelas) : undefined,
+    });
+
+    reset();
     onClose();
   };
 
@@ -73,21 +81,25 @@ export function AddAccountModal({ open, onClose, onAdd }: AddAccountModalProps) 
                 value={cliente}
                 onChange={setCliente}
                 onSelect={(c) => {
-                  setCliente(c.nome);
-                  if (c.telefone) setTelefone(c.telefone);
+                  if (c) {
+                    setClienteId(c.id);
+                    setCliente(c.nome);
+                    if (c.telefone) setTelefone(c.telefone);
+                  } else {
+                    setClienteId(null);
+                  }
                 }}
                 required
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground">Telefone *</label>
+              <label className="text-sm font-medium text-foreground">Telefone</label>
               <input
                 type="tel"
                 value={telefone}
                 onChange={(e) => setTelefone(e.target.value)}
                 placeholder="(00) 00000-0000"
                 className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                required
               />
             </div>
           </div>
@@ -133,13 +145,11 @@ export function AddAccountModal({ open, onClose, onAdd }: AddAccountModalProps) 
             <label className="text-sm font-medium text-foreground">Forma de Pagamento *</label>
             <select
               value={formaPagamento}
-              onChange={(e) => setFormaPagamento(e.target.value as Account["formaPagamento"])}
+              onChange={(e) => setFormaPagamento(e.target.value)}
               className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              {paymentMethods.map((method) => (
-                <option key={method.value} value={method.value}>
-                  {method.label}
-                </option>
+              {paymentMethods.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
               ))}
             </select>
           </div>

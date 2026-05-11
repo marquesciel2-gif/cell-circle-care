@@ -20,8 +20,9 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { AddAccountModal } from "@/components/modals/AddAccountModal";
 import { ReceivePaymentModal } from "@/components/modals/ReceivePaymentModal";
-import { EditAccountModal } from "@/components/modals/EditAccountModal";
+import { EditAccountModal, EditAccountPayload } from "@/components/modals/EditAccountModal";
 import { ReceiptModal } from "@/components/modals/ReceiptModal";
+import { ClientDetailDrawer } from "@/components/clients/ClientDetailDrawer";
 import { useAccounts, Account, AccountInput } from "@/hooks/useAccounts";
 import { useUserRole } from "@/hooks/useUserRole";
 import { format } from "date-fns";
@@ -69,7 +70,8 @@ export function AccountsReceivable() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  
+  const [clientDrawer, setClientDrawer] = useState<{ id: string | null; name: string } | null>(null);
+
   const { accounts, loading, addAccount, updateAccount, receivePayment, deleteAccount, totalPendente, totalAtrasado } = useAccounts();
   const { isAdmin, isVendedor } = useUserRole();
 
@@ -82,6 +84,7 @@ export function AccountsReceivable() {
 
   const handleAddAccount = async (newAccount: any) => {
     const input: AccountInput = {
+      client_id: newAccount.client_id || undefined,
       client_name: newAccount.cliente,
       descricao: newAccount.descricao,
       valor_total: newAccount.valor,
@@ -110,17 +113,18 @@ export function AccountsReceivable() {
     setEditModalOpen(true);
   };
 
-  const handleSaveEdit = async (updatedAccount: any) => {
-    if (selectedAccount) {
-      await updateAccount(selectedAccount.id, {
-        client_name: updatedAccount.cliente,
-        descricao: updatedAccount.descricao,
-        valor_total: updatedAccount.valor,
-        valor_pago: updatedAccount.valorPago,
-        forma_pagamento: updatedAccount.formaPagamento,
-      });
-      setEditModalOpen(false);
-    }
+  const handleSaveEdit = async (id: string, payload: EditAccountPayload) => {
+    await updateAccount(id, {
+      client_id: payload.client_id || undefined,
+      client_name: payload.client_name,
+      descricao: payload.descricao,
+      valor_total: payload.valor_total,
+      valor_pago: payload.valor_pago,
+      forma_pagamento: payload.forma_pagamento,
+      parcelas: payload.parcelas,
+      vencimento: payload.vencimento,
+    });
+    setEditModalOpen(false);
   };
 
   const openReceiveModal = (account: Account) => {
@@ -235,7 +239,13 @@ export function AccountsReceivable() {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="font-semibold text-foreground">{account.client_name}</h3>
+                      <button
+                        type="button"
+                        onClick={() => setClientDrawer({ id: account.client_id, name: account.client_name })}
+                        className="font-semibold text-foreground hover:text-primary underline-offset-2 hover:underline"
+                      >
+                        {account.client_name}
+                      </button>
                       <Badge variant="outline" className={cn("text-xs", config.className)}>
                         <StatusIcon className="mr-1 h-3 w-3" />
                         {config.label}
@@ -328,8 +338,14 @@ export function AccountsReceivable() {
       <EditAccountModal
         open={editModalOpen}
         onClose={() => setEditModalOpen(false)}
-        account={selectedAccount ? toOldFormat(selectedAccount) : null}
+        account={selectedAccount}
         onSave={handleSaveEdit}
+      />
+      <ClientDetailDrawer
+        open={!!clientDrawer}
+        onClose={() => setClientDrawer(null)}
+        clientId={clientDrawer?.id ?? null}
+        fallbackName={clientDrawer?.name ?? ""}
       />
       <ReceiptModal
         open={receiptModalOpen}

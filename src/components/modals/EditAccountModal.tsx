@@ -1,73 +1,70 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Account } from "@/types";
+import { Account } from "@/hooks/useAccounts";
+import { ClientPicker } from "@/components/clients/ClientPicker";
+
+export interface EditAccountPayload {
+  client_id?: string | null;
+  client_name: string;
+  descricao: string;
+  valor_total: number;
+  valor_pago: number;
+  forma_pagamento: string;
+  parcelas?: number;
+  vencimento?: string;
+}
 
 interface EditAccountModalProps {
   open: boolean;
   onClose: () => void;
   account: Account | null;
-  onSave: (account: Account) => void;
+  onSave: (id: string, payload: EditAccountPayload) => void;
 }
 
 const paymentMethods = [
-  { value: "promissoria" as const, label: "Promissória" },
-  { value: "avista" as const, label: "À Vista" },
-  { value: "cartao" as const, label: "Cartão" },
+  { value: "promissoria", label: "Promissória" },
+  { value: "avista", label: "À Vista" },
+  { value: "cartao", label: "Cartão" },
 ];
 
 export function EditAccountModal({ open, onClose, account, onSave }: EditAccountModalProps) {
   const [cliente, setCliente] = useState("");
-  const [telefone, setTelefone] = useState("");
+  const [clienteId, setClienteId] = useState<string | null>(null);
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [valorPago, setValorPago] = useState("");
-  const [dataVencimento, setDataVencimento] = useState("");
-  const [formaPagamento, setFormaPagamento] = useState<Account["formaPagamento"]>("avista");
-  const [numeroParcelas, setNumeroParcelas] = useState("");
+  const [vencimento, setVencimento] = useState("");
+  const [formaPagamento, setFormaPagamento] = useState("avista");
+  const [parcelas, setParcelas] = useState("");
 
   useEffect(() => {
     if (account) {
-      setCliente(account.cliente);
-      setTelefone(account.telefone);
+      setCliente(account.client_name);
+      setClienteId(account.client_id);
       setDescricao(account.descricao);
-      setValor(account.valor.toString());
-      setValorPago(account.valorPago.toString());
-      setDataVencimento(account.dataVencimento);
-      setFormaPagamento(account.formaPagamento);
-      setNumeroParcelas(account.numeroParcelas?.toString() || "");
+      setValor(String(account.valor_total));
+      setValorPago(String(account.valor_pago));
+      setVencimento(account.vencimento || "");
+      setFormaPagamento(account.forma_pagamento);
+      setParcelas(account.parcelas > 1 ? String(account.parcelas) : "");
     }
   }, [account]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!account || !cliente || !telefone || !descricao || !valor) return;
+    if (!account || !cliente || !descricao || !valor) return;
 
-    const novoValorPago = parseFloat(valorPago) || 0;
-    const valorTotal = parseFloat(valor);
-    let novoStatus: Account["status"] = account.status;
-    
-    if (novoValorPago >= valorTotal) {
-      novoStatus = "pago";
-    } else if (novoValorPago > 0) {
-      novoStatus = "parcial";
-    } else {
-      novoStatus = "pendente";
-    }
-
-    onSave({
-      ...account,
-      cliente,
-      telefone,
+    onSave(account.id, {
+      client_id: clienteId,
+      client_name: cliente,
       descricao,
-      valor: valorTotal,
-      valorPago: novoValorPago,
-      dataVencimento,
-      formaPagamento,
-      numeroParcelas: numeroParcelas ? parseInt(numeroParcelas) : undefined,
-      status: novoStatus,
+      valor_total: parseFloat(valor),
+      valor_pago: parseFloat(valorPago) || 0,
+      forma_pagamento: formaPagamento,
+      parcelas: parcelas ? parseInt(parcelas) : 1,
+      vencimento: vencimento || undefined,
     });
-
     onClose();
   };
 
@@ -78,29 +75,21 @@ export function EditAccountModal({ open, onClose, account, onSave }: EditAccount
           <DialogTitle>Editar Conta</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-foreground">Cliente *</label>
-              <input
-                type="text"
-                value={cliente}
-                onChange={(e) => setCliente(e.target.value)}
-                placeholder="Nome do cliente"
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground">Telefone *</label>
-              <input
-                type="tel"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
-                placeholder="(00) 00000-0000"
-                className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                required
-              />
-            </div>
+          <div>
+            <label className="text-sm font-medium text-foreground">Cliente *</label>
+            <ClientPicker
+              value={cliente}
+              onChange={setCliente}
+              onSelect={(c) => {
+                if (c) {
+                  setClienteId(c.id);
+                  setCliente(c.nome);
+                } else {
+                  setClienteId(null);
+                }
+              }}
+              required
+            />
           </div>
           <div>
             <label className="text-sm font-medium text-foreground">Descrição *</label>
@@ -108,7 +97,6 @@ export function EditAccountModal({ open, onClose, account, onSave }: EditAccount
               type="text"
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
-              placeholder="Ex: iPhone 12 - Conserto de tela"
               className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               required
             />
@@ -122,7 +110,6 @@ export function EditAccountModal({ open, onClose, account, onSave }: EditAccount
                 min="0"
                 value={valor}
                 onChange={(e) => setValor(e.target.value)}
-                placeholder="0,00"
                 className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 required
               />
@@ -135,7 +122,6 @@ export function EditAccountModal({ open, onClose, account, onSave }: EditAccount
                 min="0"
                 value={valorPago}
                 onChange={(e) => setValorPago(e.target.value)}
-                placeholder="0,00"
                 className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
@@ -144,13 +130,11 @@ export function EditAccountModal({ open, onClose, account, onSave }: EditAccount
             <label className="text-sm font-medium text-foreground">Forma de Pagamento *</label>
             <select
               value={formaPagamento}
-              onChange={(e) => setFormaPagamento(e.target.value as Account["formaPagamento"])}
+              onChange={(e) => setFormaPagamento(e.target.value)}
               className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              {paymentMethods.map((method) => (
-                <option key={method.value} value={method.value}>
-                  {method.label}
-                </option>
+              {paymentMethods.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
               ))}
             </select>
           </div>
@@ -160,20 +144,18 @@ export function EditAccountModal({ open, onClose, account, onSave }: EditAccount
               <input
                 type="number"
                 min="1"
-                value={numeroParcelas}
-                onChange={(e) => setNumeroParcelas(e.target.value)}
-                placeholder="Ex: 3"
+                value={parcelas}
+                onChange={(e) => setParcelas(e.target.value)}
                 className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
           )}
           <div>
-            <label className="text-sm font-medium text-foreground">Data de Vencimento</label>
+            <label className="text-sm font-medium text-foreground">Vencimento</label>
             <input
-              type="text"
-              value={dataVencimento}
-              onChange={(e) => setDataVencimento(e.target.value)}
-              placeholder="DD/MM/AAAA"
+              type="date"
+              value={vencimento}
+              onChange={(e) => setVencimento(e.target.value)}
               className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
