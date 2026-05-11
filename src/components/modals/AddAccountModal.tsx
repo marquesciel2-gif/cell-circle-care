@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Account } from "@/types";
+import { ClientPicker } from "@/components/clients/ClientPicker";
 
 interface AddAccountModalProps {
   open: boolean;
