@@ -219,6 +219,12 @@ export function InventoryTable({ title, type }: InventoryTableProps) {
         onAdd={handleAddItem}
         type={type}
       />
+      <SellInventoryModal
+        open={!!sellItem}
+        onClose={() => setSellItem(null)}
+        item={sellItem}
+        onSell={handleSell}
+      />
     </div>
   );
 }
