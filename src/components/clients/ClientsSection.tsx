@@ -223,6 +223,13 @@ export function ClientsSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ClientDetailDrawer
+        open={!!drawerClient}
+        onClose={() => setDrawerClient(null)}
+        clientId={drawerClient?.id ?? null}
+        fallbackName={drawerClient?.nome ?? ""}
+      />
     </div>
   );
 }
