@@ -35,8 +35,10 @@ const statusLabels: Record<string, string> = {
 export function InventoryTable({ title, type }: InventoryTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  
-  const { items, loading, addItem, deleteItem, decrementQuantity } = useInventory(type);
+  const [sellItem, setSellItem] = useState<InventoryItem | null>(null);
+
+  const { items, loading, addItem, deleteItem, updateItem } = useInventory(type);
+  const { addAccount } = useAccounts();
   const { isAdmin, isVendedor } = useUserRole();
 
   const canEdit = isAdmin || isVendedor;
@@ -63,8 +65,27 @@ export function InventoryTable({ title, type }: InventoryTableProps) {
     await deleteItem(id);
   };
 
-  const handleSell = async (item: any) => {
-    await decrementQuantity(item.id);
+  const handleSell = async (payload: SellPayload) => {
+    if (!sellItem) return;
+    const total = payload.preco_unitario * payload.quantidade;
+    const isPaid = payload.forma_pagamento !== "promissoria";
+
+    // Baixa estoque
+    await updateItem(sellItem.id, { quantidade: sellItem.quantidade - payload.quantidade });
+
+    // Cria conta a receber vinculada
+    await addAccount({
+      client_id: payload.client_id,
+      client_name: payload.client_name,
+      descricao: `Venda: ${sellItem.nome}${payload.quantidade > 1 ? ` (${payload.quantidade}x)` : ""}`,
+      valor_total: total,
+      valor_pago: isPaid ? total : 0,
+      parcelas: payload.parcelas || 1,
+      forma_pagamento: payload.forma_pagamento,
+      vencimento: payload.vencimento,
+    });
+
+    setSellItem(null);
   };
 
   if (loading) {
