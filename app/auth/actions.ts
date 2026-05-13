@@ -27,6 +27,7 @@ export async function cadastrar(formData: FormData) {
   const nome = formData.get('nome') as string
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  const cpfCnpj = formData.get('cpfCnpj') as string
   const nomeEmpresa = formData.get('nomeEmpresa') as string
   const telefone = formData.get('telefone') as string
 
@@ -82,6 +83,7 @@ export async function cadastrar(formData: FormData) {
     empresa_id: empresa?.id || null,
     nome,
     email,
+    cpf_cnpj: cpfCnpj,
     is_admin: true, // Primeiro usuário da empresa é admin
     is_master: false,
   })

@@ -25,6 +25,7 @@ export interface Usuario {
   empresa_id: string | null
   nome: string
   email: string
+  cpf_cnpj: string | null
   cargo: string | null
   is_admin: boolean
   is_master: boolean

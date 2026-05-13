@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Smartphone, Mail, Lock, User, Building2, Phone, Loader2, CheckCircle } from 'lucide-react'
+import { Smartphone, Mail, Lock, User, Building2, Phone, Loader2, CheckCircle, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -152,6 +152,21 @@ export default function CadastroPage() {
                       name="nome"
                       type="text"
                       placeholder="Seu nome completo"
+                      required
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cpfCnpj">CPF ou CNPJ</Label>
+                  <div className="relative">
+                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="cpfCnpj"
+                      name="cpfCnpj"
+                      type="text"
+                      placeholder="000.000.000-00 ou 00.000.000/0000-00"
                       required
                       className="pl-10"
                     />
