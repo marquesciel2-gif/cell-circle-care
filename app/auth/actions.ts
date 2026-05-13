@@ -31,7 +31,7 @@ export async function cadastrar(formData: FormData) {
   const nomeEmpresa = formData.get('nomeEmpresa') as string
   const telefone = formData.get('telefone') as string
 
-  // 1. Criar o usuário no auth
+  // 1. Criar o usuário no auth (sem necessidade de confirmação de email)
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
@@ -53,6 +53,9 @@ export async function cadastrar(formData: FormData) {
   if (!authData.user) {
     return { error: 'Erro ao criar usuário' }
   }
+
+  // Verificar se o email já foi confirmado automaticamente (quando confirmação está desabilitada)
+  const emailConfirmed = authData.user.email_confirmed_at !== null
 
   // 2. Criar a empresa primeiro (usando service role ou trigger)
   // Por enquanto, vamos usar uma abordagem que funciona com RLS
@@ -92,9 +95,24 @@ export async function cadastrar(formData: FormData) {
     console.error('Erro ao criar perfil de usuário:', usuarioError)
   }
 
+  // Se o email foi confirmado automaticamente, fazer login direto
+  if (emailConfirmed) {
+    // Fazer login automático
+    const { error: loginError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    
+    if (!loginError) {
+      redirect('/dashboard')
+    }
+  }
+
   return { 
     success: true,
-    message: 'Cadastro realizado! Verifique seu e-mail para confirmar a conta.'
+    message: emailConfirmed 
+      ? 'Cadastro realizado com sucesso! Redirecionando...'
+      : 'Cadastro realizado! Verifique seu e-mail para confirmar a conta.'
   }
 }
 

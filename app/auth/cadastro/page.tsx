@@ -62,12 +62,22 @@ export default function CadastroPage() {
                 <p className="text-muted-foreground text-sm">
                   Enviamos um e-mail de confirmação para você. Por favor, verifique sua caixa de entrada e clique no link para ativar sua conta.
                 </p>
+                <p className="text-muted-foreground text-xs">
+                  Verifique também a pasta de spam.
+                </p>
               </div>
-              <Link href="/auth/login">
-                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                  Voltar para o Login
-                </Button>
-              </Link>
+              <div className="flex flex-col gap-2 w-full">
+                <Link href="/auth/login" className="w-full">
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                    Voltar para o Login
+                  </Button>
+                </Link>
+                <Link href="/auth/confirmar-email" className="w-full">
+                  <Button variant="outline" className="w-full">
+                    Reenviar E-mail de Confirmação
+                  </Button>
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>
