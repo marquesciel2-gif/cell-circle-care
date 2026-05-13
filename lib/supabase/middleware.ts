@@ -41,14 +41,34 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (
-    // if the user is not logged in and the app path, in this case, /protected, is accessed, redirect to the login page
-    request.nextUrl.pathname.startsWith('/protected') &&
-    !user
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  const pathname = request.nextUrl.pathname
+  
+  // Rotas protegidas que requerem autenticação
+  const protectedRoutes = ['/dashboard', '/admin']
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
+  
+  // Rotas de autenticação (login, cadastro)
+  const authRoutes = ['/auth/login', '/auth/cadastro']
+  const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
+  
+  if (isProtectedRoute && !user) {
+    // Usuário não autenticado tentando acessar rota protegida
     const url = request.nextUrl.clone()
     url.pathname = '/auth/login'
+    return NextResponse.redirect(url)
+  }
+  
+  if (isAuthRoute && user) {
+    // Usuário já autenticado tentando acessar rotas de auth
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
+  
+  // Redirecionar root para dashboard se logado, ou para login se não
+  if (pathname === '/') {
+    const url = request.nextUrl.clone()
+    url.pathname = user ? '/dashboard' : '/auth/login'
     return NextResponse.redirect(url)
   }
 
