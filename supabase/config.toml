@@ -1,4 +1,0 @@
-project_id = "shccpukhqzmxoioftwtw"
-
-[functions.create-collaborator]
-verify_jwt = false
