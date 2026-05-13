@@ -26,8 +26,11 @@ export default function LoginPage() {
     if (result?.error) {
       setError(result.error)
       setLoading(false)
+    } else if (result?.success) {
+      // Login bem-sucedido, redirecionar
+      router.push('/dashboard')
+      router.refresh()
     }
-    // Se não houver erro, o redirect acontece no server action
   }
 
   return (

@@ -18,7 +18,7 @@ export async function login(formData: FormData) {
     return { error: error.message }
   }
 
-  redirect('/dashboard')
+  return { success: true }
 }
 
 export async function cadastrar(formData: FormData) {
@@ -68,15 +68,18 @@ export async function cadastrar(formData: FormData) {
     })
     
     if (!loginError) {
-      redirect('/dashboard')
+      return { 
+        success: true,
+        emailConfirmed: true,
+        message: 'Cadastro realizado com sucesso!'
+      }
     }
   }
 
   return { 
     success: true,
-    message: emailConfirmed 
-      ? 'Cadastro realizado com sucesso! Redirecionando...'
-      : 'Cadastro realizado! Verifique seu e-mail para confirmar a conta.'
+    emailConfirmed: false,
+    message: 'Cadastro realizado! Verifique seu e-mail para confirmar a conta.'
   }
 }
 

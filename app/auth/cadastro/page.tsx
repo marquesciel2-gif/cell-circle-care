@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Smartphone, Mail, Lock, User, Building2, Phone, Loader2, CheckCircle, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ export default function CadastroPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -43,8 +45,15 @@ export default function CadastroPage() {
       setError(result.error)
       setLoading(false)
     } else if (result?.success) {
-      setSuccess(true)
-      setLoading(false)
+      if (result.emailConfirmed) {
+        // Email confirmado automaticamente, redirecionar para dashboard
+        router.push('/dashboard')
+        router.refresh()
+      } else {
+        // Precisa confirmar email
+        setSuccess(true)
+        setLoading(false)
+      }
     }
   }
 
