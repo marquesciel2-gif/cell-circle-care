@@ -31,7 +31,8 @@ export async function cadastrar(formData: FormData) {
   const nomeEmpresa = formData.get('nomeEmpresa') as string
   const telefone = formData.get('telefone') as string
 
-  // 1. Criar o usuário no auth (sem necessidade de confirmação de email)
+  // Criar o usuário no auth com metadados
+  // O trigger no banco vai criar automaticamente a empresa e o usuario
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
@@ -41,7 +42,9 @@ export async function cadastrar(formData: FormData) {
         `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
       data: {
         nome,
-        email,
+        nome_empresa: nomeEmpresa,
+        telefone,
+        cpf_cnpj: cpfCnpj,
       },
     },
   })
@@ -57,25 +60,8 @@ export async function cadastrar(formData: FormData) {
   // Verificar se o email já foi confirmado automaticamente (quando confirmação está desabilitada)
   const emailConfirmed = authData.user.email_confirmed_at !== null
 
-  // 2. Criar empresa e usuário usando função RPC (contorna RLS)
-  const { data: rpcResult, error: rpcError } = await supabase.rpc('criar_empresa_e_usuario', {
-    p_user_id: authData.user.id,
-    p_nome_empresa: nomeEmpresa,
-    p_email_empresa: email,
-    p_telefone_empresa: telefone,
-    p_nome_usuario: nome,
-    p_email_usuario: email,
-    p_cpf_cnpj: cpfCnpj
-  })
-
-  if (rpcError || !rpcResult?.success) {
-    console.error('Erro ao criar empresa e usuário:', rpcError || rpcResult?.error)
-    return { error: 'Erro ao configurar sua conta. Tente novamente.' }
-  }
-
   // Se o email foi confirmado automaticamente, fazer login direto
   if (emailConfirmed) {
-    // Fazer login automático
     const { error: loginError } = await supabase.auth.signInWithPassword({
       email,
       password,
