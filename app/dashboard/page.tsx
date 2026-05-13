@@ -29,6 +29,23 @@ export default async function DashboardPage() {
   
   const empresaId = usuario?.empresa_id
 
+  // Se não tem empresa, mostrar tela de boas-vindas
+  if (!empresaId) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold">Bem-vindo ao Smart Cell!</h1>
+          <p className="text-muted-foreground">
+            Sua conta foi criada, mas ainda não está vinculada a uma empresa.
+          </p>
+          <p className="text-muted-foreground text-sm">
+            Entre em contato com o administrador ou aguarde a configuração da sua conta.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   // Buscar contagens
   const [
     { count: totalClientes },

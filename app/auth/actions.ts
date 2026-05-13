@@ -57,42 +57,20 @@ export async function cadastrar(formData: FormData) {
   // Verificar se o email já foi confirmado automaticamente (quando confirmação está desabilitada)
   const emailConfirmed = authData.user.email_confirmed_at !== null
 
-  // 2. Criar a empresa primeiro (usando service role ou trigger)
-  // Por enquanto, vamos usar uma abordagem que funciona com RLS
-  // O admin master criará empresas, ou vamos ajustar a política
-  
-  // Para permitir que usuários criem suas próprias empresas no cadastro,
-  // precisamos de uma função RPC ou ajustar temporariamente
-  
-  const { data: empresa, error: empresaError } = await supabase
-    .from('empresas')
-    .insert({
-      nome: nomeEmpresa,
-      email,
-      telefone,
-    })
-    .select()
-    .single()
-
-  if (empresaError) {
-    // Se falhar ao criar empresa, ainda deixamos o usuário criado
-    // Ele poderá ser vinculado depois por um admin
-    console.error('Erro ao criar empresa:', empresaError)
-  }
-
-  // 3. Criar o registro do usuário na tabela usuarios
-  const { error: usuarioError } = await supabase.from('usuarios').insert({
-    id: authData.user.id,
-    empresa_id: empresa?.id || null,
-    nome,
-    email,
-    cpf_cnpj: cpfCnpj,
-    is_admin: true, // Primeiro usuário da empresa é admin
-    is_master: false,
+  // 2. Criar empresa e usuário usando função RPC (contorna RLS)
+  const { data: rpcResult, error: rpcError } = await supabase.rpc('criar_empresa_e_usuario', {
+    p_user_id: authData.user.id,
+    p_nome_empresa: nomeEmpresa,
+    p_email_empresa: email,
+    p_telefone_empresa: telefone,
+    p_nome_usuario: nome,
+    p_email_usuario: email,
+    p_cpf_cnpj: cpfCnpj
   })
 
-  if (usuarioError) {
-    console.error('Erro ao criar perfil de usuário:', usuarioError)
+  if (rpcError || !rpcResult?.success) {
+    console.error('Erro ao criar empresa e usuário:', rpcError || rpcResult?.error)
+    return { error: 'Erro ao configurar sua conta. Tente novamente.' }
   }
 
   // Se o email foi confirmado automaticamente, fazer login direto
