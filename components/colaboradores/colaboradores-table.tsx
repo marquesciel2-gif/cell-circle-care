@@ -201,7 +201,7 @@ export function ColaboradoresTable({ colaboradores, convites, isAdmin, currentUs
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <UserCog className="h-4 w-4" />
-            Equipe
+            Colaboradores da Equipe
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -279,7 +279,7 @@ export function ColaboradoresTable({ colaboradores, convites, isAdmin, currentUs
               {colaboradores.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    Nenhum colaborador cadastrado
+                    Nenhum colaborador na equipe ainda. Convide membros para sua equipe!
                   </TableCell>
                 </TableRow>
               )}

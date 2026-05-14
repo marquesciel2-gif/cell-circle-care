@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, Plus } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Users, Plus, Crown } from 'lucide-react'
 import Link from 'next/link'
 import { ColaboradoresTable } from '@/components/colaboradores/colaboradores-table'
 
@@ -13,18 +14,24 @@ export default async function ColaboradoresPage() {
 
   const { data: currentUser } = await supabase
     .from('usuarios')
-    .select('empresa_id, is_admin')
+    .select('empresa_id, is_admin, is_master')
     .eq('id', user.id)
     .single()
 
   if (!currentUser?.empresa_id) return null
 
-  // Buscar colaboradores da empresa
-  const { data: colaboradores } = await supabase
+  // Buscar todos os usuarios da empresa
+  const { data: todosUsuarios } = await supabase
     .from('usuarios')
     .select('*')
     .eq('empresa_id', currentUser.empresa_id)
-    .order('nome', { ascending: true })
+    .order('created_at', { ascending: true })
+
+  // O primeiro usuario (mais antigo) é o dono/CEO
+  const dono = todosUsuarios?.[0] || null
+  
+  // Colaboradores são todos os outros (exceto o dono)
+  const colaboradores = todosUsuarios?.slice(1) || []
 
   // Buscar convites pendentes
   const { data: convites } = await supabase
@@ -47,9 +54,13 @@ export default async function ColaboradoresPage() {
     .eq('plano', empresa?.plano || 'basico')
     .single()
 
-  const totalColaboradores = colaboradores?.length || 0
-  const maxColaboradores = limites?.max_usuarios || 2
+  // Total de colaboradores (sem contar o dono)
+  const totalColaboradores = colaboradores.length
+  // O limite de usuarios inclui o dono, entao colaboradores = limite - 1
+  const maxColaboradores = (limites?.max_usuarios || 2) - 1
   const podeAdicionar = totalColaboradores < maxColaboradores
+
+  const isOwner = dono?.id === user.id
 
   return (
     <div className="space-y-6">
@@ -57,7 +68,7 @@ export default async function ColaboradoresPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Colaboradores</h1>
           <p className="text-muted-foreground">
-            Gerencie a equipe da sua assistência
+            Gerencie a equipe da sua assistencia
           </p>
         </div>
         {currentUser.is_admin && (
@@ -70,7 +81,32 @@ export default async function ColaboradoresPage() {
         )}
       </div>
 
-      {/* Info do Plano */}
+      {/* Card do Dono/CEO */}
+      {dono && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-4">
+              <div className="p-2 rounded-lg bg-amber-500/10">
+                <Crown className="h-5 w-5 text-amber-500" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base">{dono.nome}</CardTitle>
+                  <Badge className="bg-amber-500/20 text-amber-400">
+                    Proprietario
+                  </Badge>
+                  {isOwner && (
+                    <Badge variant="outline" className="text-xs">Voce</Badge>
+                  )}
+                </div>
+                <CardDescription>{dono.email}</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+      )}
+
+      {/* Info do Plano - Colaboradores */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -79,7 +115,7 @@ export default async function ColaboradoresPage() {
                 <Users className="h-5 w-5 text-emerald-500" />
               </div>
               <div>
-                <CardTitle className="text-base">Equipe</CardTitle>
+                <CardTitle className="text-base">Colaboradores</CardTitle>
                 <CardDescription>
                   {totalColaboradores} de {maxColaboradores} colaboradores
                 </CardDescription>
@@ -98,7 +134,7 @@ export default async function ColaboradoresPage() {
           <div className="w-full bg-muted rounded-full h-2">
             <div 
               className="bg-emerald-500 h-2 rounded-full transition-all" 
-              style={{ width: `${Math.min((totalColaboradores / maxColaboradores) * 100, 100)}%` }}
+              style={{ width: `${maxColaboradores > 0 ? Math.min((totalColaboradores / maxColaboradores) * 100, 100) : 0}%` }}
             />
           </div>
         </CardContent>
@@ -106,7 +142,7 @@ export default async function ColaboradoresPage() {
 
       {/* Tabela de Colaboradores */}
       <ColaboradoresTable 
-        colaboradores={colaboradores || []} 
+        colaboradores={colaboradores} 
         convites={convites || []}
         isAdmin={currentUser.is_admin}
         currentUserId={user.id}
