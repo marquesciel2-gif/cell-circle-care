@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 
+// Utilitarios para geracao de PDFs profissionais
 // Cores do tema Smart Cell
 const COLORS = {
   primary: [16, 185, 129] as [number, number, number], // emerald-500
