@@ -190,12 +190,12 @@ export default function EditarReceitaPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="cliente">Cliente</Label>
-                <Select value={clienteId} onValueChange={setClienteId}>
+                <Select value={clienteId || "none"} onValueChange={(v) => setClienteId(v === "none" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {clientes.map((cliente) => (
                       <SelectItem key={cliente.id} value={cliente.id}>
                         {cliente.nome}
@@ -243,12 +243,12 @@ export default function EditarReceitaPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="forma_pagamento">Forma de Pagamento</Label>
-                <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+                <Select value={formaPagamento || "none"} onValueChange={(v) => setFormaPagamento(v === "none" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nao informado</SelectItem>
+                    <SelectItem value="none">Nao informado</SelectItem>
                     <SelectItem value="dinheiro">Dinheiro</SelectItem>
                     <SelectItem value="pix">PIX</SelectItem>
                     <SelectItem value="credito">Cartao de Credito</SelectItem>
