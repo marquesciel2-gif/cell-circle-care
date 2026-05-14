@@ -1,6 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { createPDFDocument, addValueBox, addSectionTitle, addInfoRow, formatCurrency, formatDate, COLORS } from '@/lib/pdf-generator'
+import {
+  createPDFDocument,
+  addValueBox,
+  addSectionTitle,
+  addInfoRow,
+  formatCurrency,
+  formatDate,
+  COLORS
+} from '@/lib/pdf-generator'
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
