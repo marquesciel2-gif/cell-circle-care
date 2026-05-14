@@ -14,7 +14,7 @@ import {
   formatCurrency,
   formatDate,
   COLORS
-} from '@/lib/pdf-generator'
+} from '@/lib/pdf'
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
