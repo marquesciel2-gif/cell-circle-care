@@ -1,1 +1,0 @@
-ALTER TABLE public.repairs ADD COLUMN IF NOT EXISTS delivered_at timestamp with time zone;
