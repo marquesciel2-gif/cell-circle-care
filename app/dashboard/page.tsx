@@ -1,26 +1,22 @@
 import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
   Users, 
-  Wrench, 
-  Package, 
   DollarSign, 
   AlertTriangle,
   CheckCircle,
   Clock,
   TrendingUp
 } from 'lucide-react'
-import { DashboardCharts } from '@/components/dashboard/charts'
 import { RecentConsertos } from '@/components/dashboard/recent-consertos'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
 
-  // Buscar estatísticas
   const { data: { user } } = await supabase.auth.getUser()
-  
   if (!user) return null
   
+  // Buscar usuario e empresa_id em uma única query
   const { data: usuario } = await supabase
     .from('usuarios')
     .select('empresa_id')
@@ -29,7 +25,6 @@ export default async function DashboardPage() {
   
   const empresaId = usuario?.empresa_id
 
-  // Se não tem empresa, mostrar tela de boas-vindas
   if (!empresaId) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -38,34 +33,34 @@ export default async function DashboardPage() {
           <p className="text-muted-foreground">
             Sua conta foi criada, mas ainda não está vinculada a uma empresa.
           </p>
-          <p className="text-muted-foreground text-sm">
-            Entre em contato com o administrador ou aguarde a configuração da sua conta.
-          </p>
         </div>
       </div>
     )
   }
 
-  // Buscar contagens
+  // Buscar todas as contagens em paralelo (otimizado)
+  const mesAtual = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+  
   const [
     { count: totalClientes },
-    { count: totalConsertos },
     { count: consertosAbertos },
     { count: consertosFinalizados },
-    { count: itensEstoqueBaixo },
+    { data: estoqueBaixo },
     { data: receitasMes },
     { data: despesasMes },
     { data: recentConsertos }
   ] = await Promise.all([
     supabase.from('clientes').select('*', { count: 'exact', head: true }).eq('empresa_id', empresaId),
-    supabase.from('consertos').select('*', { count: 'exact', head: true }).eq('empresa_id', empresaId),
     supabase.from('consertos').select('*', { count: 'exact', head: true }).eq('empresa_id', empresaId).in('status', ['recebido', 'diagnostico', 'aguardando_aprovacao', 'em_reparo']),
     supabase.from('consertos').select('*', { count: 'exact', head: true }).eq('empresa_id', empresaId).eq('status', 'entregue'),
-    supabase.from('estoque').select('*', { count: 'exact', head: true }).eq('empresa_id', empresaId).filter('quantidade', 'lte', 'quantidade_minima'),
-    supabase.from('receitas').select('valor').eq('empresa_id', empresaId).eq('status', 'pago').gte('data_pagamento', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
-    supabase.from('despesas').select('valor').eq('empresa_id', empresaId).eq('status', 'pago').gte('data_pagamento', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+    supabase.from('estoque').select('id, quantidade, quantidade_minima').eq('empresa_id', empresaId),
+    supabase.from('receitas').select('valor').eq('empresa_id', empresaId).eq('status', 'pago').gte('data_pagamento', mesAtual),
+    supabase.from('despesas').select('valor').eq('empresa_id', empresaId).eq('status', 'pago').gte('data_pagamento', mesAtual),
     supabase.from('consertos').select('*, cliente:clientes(nome)').eq('empresa_id', empresaId).order('created_at', { ascending: false }).limit(5)
   ])
+  
+  // Calcular estoque baixo no cliente
+  const itensEstoqueBaixo = estoqueBaixo?.filter(item => item.quantidade <= item.quantidade_minima).length || 0
 
   const totalReceitasMes = receitasMes?.reduce((acc, r) => acc + Number(r.valor), 0) || 0
   const totalDespesasMes = despesasMes?.reduce((acc, d) => acc + Number(d.valor), 0) || 0

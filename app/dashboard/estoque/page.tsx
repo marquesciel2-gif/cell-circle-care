@@ -33,18 +33,15 @@ export default async function EstoquePage({
     query = query.or(`nome.ilike.%${q}%,codigo.ilike.%${q}%,categoria.ilike.%${q}%`)
   }
 
-  if (baixo === 'true') {
-    query = query.filter('quantidade', 'lte', 'quantidade_minima')
-  }
-
   const { data: itens } = await query
 
+  // Filtrar estoque baixo no cliente (pois a query do Supabase não suporta comparação entre colunas diretamente)
+  const itensFiltrados = baixo === 'true' 
+    ? itens?.filter(item => item.quantidade <= item.quantidade_minima) 
+    : itens
+  
   // Contar itens com estoque baixo
-  const { count: itensEstoqueBaixo } = await supabase
-    .from('estoque')
-    .select('*', { count: 'exact', head: true })
-    .eq('empresa_id', usuario?.empresa_id)
-    .filter('quantidade', 'lte', 'quantidade_minima')
+  const itensEstoqueBaixo = itens?.filter(item => item.quantidade <= item.quantidade_minima).length || 0
 
   return (
     <div className="space-y-6">
@@ -112,8 +109,8 @@ export default async function EstoquePage({
       </Card>
 
       {/* Tabela */}
-      {itens && itens.length > 0 ? (
-        <EstoqueTable itens={itens} />
+      {itensFiltrados && itensFiltrados.length > 0 ? (
+        <EstoqueTable itens={itensFiltrados} />
       ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
