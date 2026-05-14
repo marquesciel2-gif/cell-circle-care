@@ -28,8 +28,16 @@ export async function createItemEstoque(formData: FormData) {
   const precoVenda = parseFloat(formData.get('preco_venda') as string) || 0
   const fornecedor = formData.get('fornecedor') as string
   const localizacao = formData.get('localizacao') as string
+  // Novos campos de rastreabilidade
+  const marca = formData.get('marca') as string
+  const modelo = formData.get('modelo') as string
+  const numeroSerie = formData.get('numero_serie') as string
+  const imei = formData.get('imei') as string
+  const codigoBarras = formData.get('codigo_barras') as string
+  const garantiaMeses = parseInt(formData.get('garantia_meses') as string) || 0
+  const dataEntrada = formData.get('data_entrada') as string
 
-  const { error } = await supabase.from('estoque').insert({
+  const { data: item, error } = await supabase.from('estoque').insert({
     empresa_id: usuario.empresa_id,
     nome,
     codigo: codigo || null,
@@ -41,10 +49,31 @@ export async function createItemEstoque(formData: FormData) {
     preco_venda: precoVenda,
     fornecedor: fornecedor || null,
     localizacao: localizacao || null,
-  })
+    marca: marca || null,
+    modelo: modelo || null,
+    numero_serie: numeroSerie || null,
+    imei: imei || null,
+    codigo_barras: codigoBarras || null,
+    garantia_meses: garantiaMeses,
+    data_entrada: dataEntrada || null,
+    status_produto: 'em_estoque',
+  }).select().single()
 
   if (error) {
     return { error: error.message }
+  }
+
+  // Registrar movimentacao de entrada inicial
+  if (item && quantidade > 0) {
+    await supabase.from('movimentacoes_produto').insert({
+      empresa_id: usuario.empresa_id,
+      produto_id: item.id,
+      usuario_id: user.id,
+      tipo: 'entrada',
+      quantidade,
+      valor: precoCusto * quantidade,
+      observacao: 'Entrada inicial no cadastro do produto',
+    })
   }
 
   revalidatePath('/dashboard/estoque')
@@ -63,6 +92,15 @@ export async function updateItemEstoque(id: string, formData: FormData) {
   const precoVenda = parseFloat(formData.get('preco_venda') as string) || 0
   const fornecedor = formData.get('fornecedor') as string
   const localizacao = formData.get('localizacao') as string
+  // Novos campos de rastreabilidade
+  const marca = formData.get('marca') as string
+  const modelo = formData.get('modelo') as string
+  const numeroSerie = formData.get('numero_serie') as string
+  const imei = formData.get('imei') as string
+  const codigoBarras = formData.get('codigo_barras') as string
+  const garantiaMeses = parseInt(formData.get('garantia_meses') as string) || 0
+  const dataEntrada = formData.get('data_entrada') as string
+  const statusProduto = formData.get('status_produto') as string
 
   const { error } = await supabase
     .from('estoque')
@@ -76,6 +114,14 @@ export async function updateItemEstoque(id: string, formData: FormData) {
       preco_venda: precoVenda,
       fornecedor: fornecedor || null,
       localizacao: localizacao || null,
+      marca: marca || null,
+      modelo: modelo || null,
+      numero_serie: numeroSerie || null,
+      imei: imei || null,
+      codigo_barras: codigoBarras || null,
+      garantia_meses: garantiaMeses,
+      data_entrada: dataEntrada || null,
+      status_produto: statusProduto || 'em_estoque',
     })
     .eq('id', id)
 

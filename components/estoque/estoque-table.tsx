@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { MoreHorizontal, Pencil, Trash2, Plus, Minus } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash2, Plus, Minus, Eye, History, QrCode } from 'lucide-react'
 import type { ItemEstoque } from '@/lib/types'
 import { deleteItemEstoque } from '@/app/dashboard/estoque/actions'
 import { toast } from 'sonner'
@@ -77,8 +77,18 @@ export function EstoqueTable({ itens }: EstoqueTableProps) {
                 <TableRow key={item.id}>
                   <TableCell>
                     <div>
-                      <span className="font-medium">{item.nome}</span>
-                      {item.descricao && (
+                      <Link 
+                        href={`/dashboard/estoque/${item.id}`}
+                        className="font-medium hover:text-emerald-500 transition-colors"
+                      >
+                        {item.nome}
+                      </Link>
+                      {item.marca && item.modelo && (
+                        <span className="text-muted-foreground text-sm block">
+                          {item.marca} {item.modelo}
+                        </span>
+                      )}
+                      {item.descricao && !item.marca && (
                         <span className="text-muted-foreground text-sm block truncate max-w-[200px]">
                           {item.descricao}
                         </span>
@@ -116,20 +126,26 @@ export function EstoqueTable({ itens }: EstoqueTableProps) {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem asChild>
                           <Link href={`/dashboard/estoque/${item.id}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Ver Detalhes
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/estoque/${item.id}/editar`}>
                             <Pencil className="mr-2 h-4 w-4" />
                             Editar
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/estoque/${item.id}/movimentar?tipo=entrada`}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Entrada
+                          <Link href={`/dashboard/estoque/${item.id}/movimentar`}>
+                            <History className="mr-2 h-4 w-4" />
+                            Movimentar
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/estoque/${item.id}/movimentar?tipo=saida`}>
-                            <Minus className="mr-2 h-4 w-4" />
-                            Saída
+                          <Link href={`/dashboard/estoque/${item.id}?tab=qrcode`}>
+                            <QrCode className="mr-2 h-4 w-4" />
+                            QR Code
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
