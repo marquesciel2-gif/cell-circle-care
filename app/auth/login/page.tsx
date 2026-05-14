@@ -7,6 +7,7 @@ import { Smartphone, Mail, Lock, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { login } from '../actions'
 
@@ -91,6 +92,24 @@ export default function LoginPage() {
                     className="pl-10"
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="remember" name="remember" />
+                  <Label 
+                    htmlFor="remember" 
+                    className="text-sm font-normal cursor-pointer text-muted-foreground"
+                  >
+                    Manter-me conectado
+                  </Label>
+                </div>
+                <Link 
+                  href="/auth/recuperar-senha" 
+                  className="text-sm text-emerald-500 hover:text-emerald-400"
+                >
+                  Esqueci a senha
+                </Link>
               </div>
 
               <Button 
