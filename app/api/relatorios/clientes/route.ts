@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { jsPDF } from 'jspdf'
+import { createPDFDocument, addValueBox, formatCurrency, formatDate, getTableStyles, COLORS } from '@/lib/pdf-utils'
 import autoTable from 'jspdf-autotable'
 
 export async function GET(request: NextRequest) {
@@ -12,32 +12,42 @@ export async function GET(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
   }
 
   const { data: usuario } = await supabase
     .from('usuarios')
-    .select('empresa_id, empresa:empresas(nome)')
+    .select('*, empresa:empresas(*)')
     .eq('id', user.id)
     .single()
 
-  if (!usuario?.empresa_id) {
-    return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 })
+  if (!usuario?.empresa) {
+    return NextResponse.json({ error: 'Empresa nao encontrada' }, { status: 404 })
   }
 
-  // Buscar clientes com seus consertos
+  const empresa = usuario.empresa as { nome: string; cnpj?: string; telefone?: string; email?: string }
+
+  // Buscar clientes
   const { data: clientes } = await supabase
     .from('clientes')
     .select('*')
     .eq('empresa_id', usuario.empresa_id)
     .order('nome', { ascending: true })
 
-  const { data: consertos } = await supabase
+  // Buscar consertos se houver periodo
+  let consertosQuery = supabase
     .from('consertos')
     .select('*')
     .eq('empresa_id', usuario.empresa_id)
-    .gte('data_entrada', `${dataInicio}T00:00:00`)
-    .lte('data_entrada', `${dataFim}T23:59:59`)
+
+  if (dataInicio) {
+    consertosQuery = consertosQuery.gte('data_entrada', `${dataInicio}T00:00:00`)
+  }
+  if (dataFim) {
+    consertosQuery = consertosQuery.lte('data_entrada', `${dataFim}T23:59:59`)
+  }
+
+  const { data: consertos } = await consertosQuery
 
   // Agregar dados por cliente
   const clientesComServicos = clientes?.map(cliente => {
@@ -51,22 +61,40 @@ export async function GET(request: NextRequest) {
     }
   }).filter(c => c.totalServicos > 0).sort((a, b) => b.valorTotal - a.valorTotal) || []
 
+  // Calcular totais
+  const totalClientes = clientesComServicos.length
+  const totalServicos = clientesComServicos.reduce((sum, c) => sum + c.totalServicos, 0)
+  const valorTotal = clientesComServicos.reduce((sum, c) => sum + c.valorTotal, 0)
+  const mediaCliente = totalClientes > 0 ? valorTotal / totalClientes : 0
+
   // Gerar PDF
-  const doc = new jsPDF()
-  const empresaNome = (usuario.empresa as { nome: string })?.nome || 'Empresa'
+  const doc = createPDFDocument({
+    titulo: 'RELATORIO POR CLIENTE',
+    subtitulo: dataInicio && dataFim ? `Periodo: ${formatDate(dataInicio)} a ${formatDate(dataFim)}` : 'Periodo completo',
+    empresa: {
+      nome: empresa.nome,
+      cnpj: empresa.cnpj,
+      telefone: empresa.telefone,
+      email: empresa.email,
+    },
+    usuario: {
+      nome: usuario.nome,
+      email: usuario.email,
+    },
+  })
+
+  const margin = 15
+  const pageWidth = doc.internal.pageSize.getWidth()
+  let y = 62
+
+  // Resumo em caixas
+  const boxWidth = (pageWidth - margin * 2 - 30) / 4
+  addValueBox(doc, 'CLIENTES', `${totalClientes}`, margin, y, boxWidth, COLORS.primary)
+  addValueBox(doc, 'SERVICOS', `${totalServicos}`, margin + boxWidth + 10, y, boxWidth, COLORS.secondary)
+  addValueBox(doc, 'VALOR TOTAL', formatCurrency(valorTotal), margin + (boxWidth + 10) * 2, y, boxWidth, COLORS.success)
+  addValueBox(doc, 'MEDIA/CLIENTE', formatCurrency(mediaCliente), margin + (boxWidth + 10) * 3, y, boxWidth, COLORS.primary)
   
-  // Header
-  doc.setFontSize(18)
-  doc.setFont('helvetica', 'bold')
-  doc.text('RELATÓRIO POR CLIENTE', 105, 20, { align: 'center' })
-  
-  doc.setFontSize(12)
-  doc.setFont('helvetica', 'normal')
-  doc.text(empresaNome, 105, 28, { align: 'center' })
-  
-  doc.setFontSize(10)
-  doc.text(`Período: ${formatDate(dataInicio!)} a ${formatDate(dataFim!)}`, 105, 35, { align: 'center' })
-  doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 105, 41, { align: 'center' })
+  y += 35
 
   // Tabela
   const tableData = clientesComServicos.map(c => [
@@ -78,39 +106,46 @@ export async function GET(request: NextRequest) {
   ])
 
   autoTable(doc, {
-    startY: 50,
-    head: [['Cliente', 'Telefone', 'E-mail', 'Serviços', 'Valor Total']],
+    startY: y,
+    head: [['Cliente', 'Telefone', 'E-mail', 'Servicos', 'Valor Total']],
     body: tableData,
-    theme: 'grid',
-    headStyles: { fillColor: [16, 185, 129], textColor: 255 },
-    styles: { fontSize: 9 },
+    ...getTableStyles(),
     columnStyles: {
       0: { cellWidth: 50 },
-      3: { halign: 'center' },
-      4: { halign: 'right' }
+      1: { cellWidth: 35 },
+      2: { cellWidth: 50 },
+      3: { cellWidth: 20, halign: 'center' },
+      4: { cellWidth: 30, halign: 'right' }
     },
     foot: [[
-      `Total: ${clientesComServicos.length} clientes`, '', '',
-      clientesComServicos.reduce((sum, c) => sum + c.totalServicos, 0).toString(),
-      formatCurrency(clientesComServicos.reduce((sum, c) => sum + c.valorTotal, 0))
+      `Total: ${totalClientes} clientes`, '', '',
+      totalServicos.toString(),
+      formatCurrency(valorTotal)
     ]],
-    footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' }
+    footStyles: { 
+      fillColor: COLORS.secondary, 
+      textColor: COLORS.white, 
+      fontStyle: 'bold',
+      fontSize: 10
+    },
+    didDrawPage: () => {
+      doc.setFontSize(8)
+      doc.setTextColor(...COLORS.textLight)
+      doc.text(
+        `${empresa.nome} - Relatorio gerado pelo Smart Cell`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      )
+    }
   })
 
-  const pdfBuffer = doc.output('arraybuffer')
+  const pdfBuffer = Buffer.from(doc.output('arraybuffer'))
   
   return new NextResponse(pdfBuffer, {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename=clientes-${dataInicio}-${dataFim}.pdf`
+      'Content-Disposition': `attachment; filename=clientes-${dataInicio || 'todos'}-${dataFim || ''}.pdf`
     }
   })
-}
-
-function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('pt-BR')
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }

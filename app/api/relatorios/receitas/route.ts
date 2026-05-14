@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { jsPDF } from 'jspdf'
+import { createPDFDocument, addValueBox, formatCurrency, formatDate, getTableStyles, COLORS } from '@/lib/pdf-utils'
 import autoTable from 'jspdf-autotable'
 
 export async function GET(request: NextRequest) {
@@ -13,96 +13,128 @@ export async function GET(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
   }
 
   const { data: usuario } = await supabase
     .from('usuarios')
-    .select('empresa_id, empresa:empresas(nome)')
+    .select('*, empresa:empresas(*)')
     .eq('id', user.id)
     .single()
 
-  if (!usuario?.empresa_id) {
-    return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 })
+  if (!usuario?.empresa) {
+    return NextResponse.json({ error: 'Empresa nao encontrada' }, { status: 404 })
   }
+
+  const empresa = usuario.empresa as { nome: string; cnpj?: string; telefone?: string; email?: string }
 
   let query = supabase
     .from('receitas')
     .select('*, cliente:clientes(nome)')
     .eq('empresa_id', usuario.empresa_id)
-    .gte('created_at', `${dataInicio}T00:00:00`)
-    .lte('created_at', `${dataFim}T23:59:59`)
-    .order('created_at', { ascending: false })
 
+  if (dataInicio) {
+    query = query.gte('created_at', `${dataInicio}T00:00:00`)
+  }
+  if (dataFim) {
+    query = query.lte('created_at', `${dataFim}T23:59:59`)
+  }
   if (status !== 'todos') {
     query = query.eq('status', status)
   }
 
-  const { data: receitas } = await query
+  const { data: receitas } = await query.order('created_at', { ascending: false })
+
+  // Calcular totais
+  const totalReceitas = receitas?.reduce((sum, r) => sum + Number(r.valor), 0) || 0
+  const totalPagas = receitas?.filter(r => r.status === 'pago').reduce((sum, r) => sum + Number(r.valor), 0) || 0
+  const totalPendentes = receitas?.filter(r => r.status === 'pendente').reduce((sum, r) => sum + Number(r.valor), 0) || 0
 
   // Gerar PDF
-  const doc = new jsPDF()
-  const empresaNome = (usuario.empresa as { nome: string })?.nome || 'Empresa'
-  
-  // Header
-  doc.setFontSize(18)
-  doc.setFont('helvetica', 'bold')
-  doc.text('RELATÓRIO DE RECEITAS', 105, 20, { align: 'center' })
-  
-  doc.setFontSize(12)
-  doc.setFont('helvetica', 'normal')
-  doc.text(empresaNome, 105, 28, { align: 'center' })
-  
-  doc.setFontSize(10)
-  doc.text(`Período: ${formatDate(dataInicio!)} a ${formatDate(dataFim!)}`, 105, 35, { align: 'center' })
-  doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 105, 41, { align: 'center' })
-
-  // Tabela
-  const tableData = receitas?.map(r => [
-    formatDate(r.created_at),
-    r.descricao,
-    r.cliente?.nome || '-',
-    r.categoria || '-',
-    formatStatus(r.status),
-    r.forma_pagamento || '-',
-    formatCurrency(r.valor)
-  ]) || []
-
-  autoTable(doc, {
-    startY: 50,
-    head: [['Data', 'Descrição', 'Cliente', 'Categoria', 'Status', 'Pagamento', 'Valor']],
-    body: tableData,
-    theme: 'grid',
-    headStyles: { fillColor: [16, 185, 129], textColor: 255 },
-    styles: { fontSize: 8 },
-    columnStyles: {
-      0: { cellWidth: 22 },
-      1: { cellWidth: 45 },
-      6: { halign: 'right' }
+  const doc = createPDFDocument({
+    titulo: 'RELATORIO DE RECEITAS',
+    subtitulo: dataInicio && dataFim ? `Periodo: ${formatDate(dataInicio)} a ${formatDate(dataFim)}` : 'Todas as receitas',
+    empresa: {
+      nome: empresa.nome,
+      cnpj: empresa.cnpj,
+      telefone: empresa.telefone,
+      email: empresa.email,
     },
-    foot: [[
-      '', '', '', '', '', 'TOTAL:',
-      formatCurrency(receitas?.reduce((sum, r) => sum + Number(r.valor), 0) || 0)
-    ]],
-    footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' }
+    usuario: {
+      nome: usuario.nome,
+      email: usuario.email,
+    },
   })
 
-  const pdfBuffer = doc.output('arraybuffer')
+  const margin = 15
+  const pageWidth = doc.internal.pageSize.getWidth()
+  let y = 62
+
+  // Resumo em caixas coloridas
+  const boxWidth = (pageWidth - margin * 2 - 20) / 3
+  addValueBox(doc, 'TOTAL', formatCurrency(totalReceitas), margin, y, boxWidth, COLORS.primary)
+  addValueBox(doc, 'PAGAS', formatCurrency(totalPagas), margin + boxWidth + 10, y, boxWidth, COLORS.success)
+  addValueBox(doc, 'PENDENTES', formatCurrency(totalPendentes), margin + (boxWidth + 10) * 2, y, boxWidth, COLORS.warning)
+  
+  y += 35
+
+  // Tabela
+  const tableData = receitas?.map(r => {
+    const cliente = r.cliente as { nome?: string } | null
+    return [
+      formatDate(r.created_at),
+      r.descricao.length > 35 ? r.descricao.substring(0, 35) + '...' : r.descricao,
+      cliente?.nome || '-',
+      formatStatus(r.status),
+      r.forma_pagamento || '-',
+      formatCurrency(r.valor)
+    ]
+  }) || []
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Data', 'Descricao', 'Cliente', 'Status', 'Pagamento', 'Valor']],
+    body: tableData,
+    ...getTableStyles(),
+    columnStyles: {
+      0: { cellWidth: 22 },
+      1: { cellWidth: 50 },
+      2: { cellWidth: 35 },
+      3: { cellWidth: 22 },
+      4: { cellWidth: 25 },
+      5: { cellWidth: 25, halign: 'right' }
+    },
+    foot: [[
+      '', '', '', '', 'TOTAL:',
+      formatCurrency(totalReceitas)
+    ]],
+    footStyles: { 
+      fillColor: COLORS.secondary, 
+      textColor: COLORS.white, 
+      fontStyle: 'bold',
+      fontSize: 10
+    },
+    didDrawPage: () => {
+      // Rodape em cada pagina
+      doc.setFontSize(8)
+      doc.setTextColor(...COLORS.textLight)
+      doc.text(
+        `${empresa.nome} - Relatorio gerado pelo Smart Cell`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      )
+    }
+  })
+
+  const pdfBuffer = Buffer.from(doc.output('arraybuffer'))
   
   return new NextResponse(pdfBuffer, {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename=receitas-${dataInicio}-${dataFim}.pdf`
+      'Content-Disposition': `attachment; filename=receitas-${dataInicio || 'todas'}-${dataFim || 'datas'}.pdf`
     }
   })
-}
-
-function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('pt-BR')
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }
 
 function formatStatus(status: string): string {

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { jsPDF } from 'jspdf'
+import { createPDFDocument, addValueBox, formatCurrency, getTableStyles, COLORS } from '@/lib/pdf-utils'
 import autoTable from 'jspdf-autotable'
 
 export async function GET(request: NextRequest) {
@@ -8,18 +8,20 @@ export async function GET(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    return NextResponse.json({ error: 'Nao autorizado' }, { status: 401 })
   }
 
   const { data: usuario } = await supabase
     .from('usuarios')
-    .select('empresa_id, empresa:empresas(nome)')
+    .select('*, empresa:empresas(*)')
     .eq('id', user.id)
     .single()
 
-  if (!usuario?.empresa_id) {
-    return NextResponse.json({ error: 'Empresa não encontrada' }, { status: 404 })
+  if (!usuario?.empresa) {
+    return NextResponse.json({ error: 'Empresa nao encontrada' }, { status: 404 })
   }
+
+  const empresa = usuario.empresa as { nome: string; cnpj?: string; telefone?: string; email?: string }
 
   const { data: estoque } = await supabase
     .from('estoque')
@@ -27,26 +29,45 @@ export async function GET(request: NextRequest) {
     .eq('empresa_id', usuario.empresa_id)
     .order('nome', { ascending: true })
 
+  // Calcular estatisticas
+  const totalItens = estoque?.length || 0
+  const totalPecas = estoque?.reduce((sum, e) => sum + e.quantidade, 0) || 0
+  const valorTotalEstoque = estoque?.reduce((sum, e) => sum + (e.quantidade * e.preco_custo), 0) || 0
+  const itensEstoqueBaixo = estoque?.filter(e => e.quantidade <= e.quantidade_minima).length || 0
+
   // Gerar PDF
-  const doc = new jsPDF()
-  const empresaNome = (usuario.empresa as { nome: string })?.nome || 'Empresa'
+  const doc = createPDFDocument({
+    titulo: 'INVENTARIO DE ESTOQUE',
+    subtitulo: `${totalItens} produtos cadastrados`,
+    empresa: {
+      nome: empresa.nome,
+      cnpj: empresa.cnpj,
+      telefone: empresa.telefone,
+      email: empresa.email,
+    },
+    usuario: {
+      nome: usuario.nome,
+      email: usuario.email,
+    },
+  })
+
+  const margin = 15
+  const pageWidth = doc.internal.pageSize.getWidth()
+  let y = 62
+
+  // Resumo em caixas
+  const boxWidth = (pageWidth - margin * 2 - 30) / 4
+  addValueBox(doc, 'PRODUTOS', `${totalItens}`, margin, y, boxWidth, COLORS.primary)
+  addValueBox(doc, 'PECAS', `${totalPecas}`, margin + boxWidth + 10, y, boxWidth, COLORS.secondary)
+  addValueBox(doc, 'VALOR TOTAL', formatCurrency(valorTotalEstoque), margin + (boxWidth + 10) * 2, y, boxWidth, COLORS.success)
+  addValueBox(doc, 'ESTOQUE BAIXO', `${itensEstoqueBaixo}`, margin + (boxWidth + 10) * 3, y, boxWidth, itensEstoqueBaixo > 0 ? COLORS.danger : COLORS.success)
   
-  // Header
-  doc.setFontSize(18)
-  doc.setFont('helvetica', 'bold')
-  doc.text('INVENTÁRIO DE ESTOQUE', 105, 20, { align: 'center' })
-  
-  doc.setFontSize(12)
-  doc.setFont('helvetica', 'normal')
-  doc.text(empresaNome, 105, 28, { align: 'center' })
-  
-  doc.setFontSize(10)
-  doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, 105, 35, { align: 'center' })
+  y += 35
 
   // Tabela
   const tableData = estoque?.map(e => [
     e.codigo || '-',
-    e.nome,
+    e.nome.length > 30 ? e.nome.substring(0, 30) + '...' : e.nome,
     e.categoria || '-',
     e.quantidade.toString(),
     e.quantidade_minima.toString(),
@@ -55,28 +76,32 @@ export async function GET(request: NextRequest) {
     formatCurrency(e.quantidade * e.preco_custo)
   ]) || []
 
-  const valorTotalEstoque = estoque?.reduce((sum, e) => sum + (e.quantidade * e.preco_custo), 0) || 0
-
+  const tableStyles = getTableStyles()
   autoTable(doc, {
-    startY: 45,
-    head: [['Código', 'Produto', 'Categoria', 'Qtd', 'Mín', 'Custo', 'Venda', 'Valor Total']],
+    startY: y,
+    head: [['Codigo', 'Produto', 'Categoria', 'Qtd', 'Min', 'Custo', 'Venda', 'Valor Total']],
     body: tableData,
-    theme: 'grid',
-    headStyles: { fillColor: [249, 115, 22], textColor: 255 },
-    styles: { fontSize: 8 },
+    ...tableStyles,
+    headStyles: {
+      ...tableStyles.headStyles,
+      fillColor: [249, 115, 22] as [number, number, number], // orange
+    },
     columnStyles: {
       0: { cellWidth: 18 },
-      1: { cellWidth: 50 },
-      5: { halign: 'right' },
-      6: { halign: 'right' },
-      7: { halign: 'right' }
+      1: { cellWidth: 45 },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 15, halign: 'center' },
+      4: { cellWidth: 15, halign: 'center' },
+      5: { cellWidth: 22, halign: 'right' },
+      6: { cellWidth: 22, halign: 'right' },
+      7: { cellWidth: 25, halign: 'right' }
     },
     didParseCell: function(data) {
       if (data.section === 'body' && data.column.index === 3) {
         const qtd = parseInt(data.cell.text[0])
         const min = parseInt(tableData[data.row.index][4])
         if (qtd <= min) {
-          data.cell.styles.textColor = [239, 68, 68]
+          data.cell.styles.textColor = COLORS.danger
           data.cell.styles.fontStyle = 'bold'
         }
       }
@@ -84,10 +109,25 @@ export async function GET(request: NextRequest) {
     foot: [[
       '', '', '', '', '', '', 'VALOR TOTAL:', formatCurrency(valorTotalEstoque)
     ]],
-    footStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold' }
+    footStyles: { 
+      fillColor: COLORS.secondary, 
+      textColor: COLORS.white, 
+      fontStyle: 'bold',
+      fontSize: 10
+    },
+    didDrawPage: () => {
+      doc.setFontSize(8)
+      doc.setTextColor(...COLORS.textLight)
+      doc.text(
+        `${empresa.nome} - Relatorio gerado pelo Smart Cell`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      )
+    }
   })
 
-  const pdfBuffer = doc.output('arraybuffer')
+  const pdfBuffer = Buffer.from(doc.output('arraybuffer'))
   
   return new NextResponse(pdfBuffer, {
     headers: {
@@ -95,8 +135,4 @@ export async function GET(request: NextRequest) {
       'Content-Disposition': `attachment; filename=estoque-${new Date().toISOString().split('T')[0]}.pdf`
     }
   })
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }
