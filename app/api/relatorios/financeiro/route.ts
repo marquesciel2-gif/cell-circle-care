@@ -1,3 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/**
+ * Relatorio Financeiro PDF API
+ * @version 2.0.0
+ * @updated 2026-05-14
+ */
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import {
