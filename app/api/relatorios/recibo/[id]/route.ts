@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createPDFDocument, addInfoRow, addValueBox, formatCurrency, formatDate, COLORS } from '@/lib/pdf-utils'
+import { createPDFDocument, addInfoRow, addValueBox, formatCurrency, formatDate, COLORS } from '@/lib/pdf-generator'
 
 export async function GET(
   request: NextRequest,

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { createPDFDocument, addValueBox, getTableStyles, COLORS } from '@/lib/pdf-utils'
+import { createPDFDocument, addValueBox, getTableStyles, COLORS } from '@/lib/pdf-generator'
 import autoTable from 'jspdf-autotable'
 
 export async function GET(request: NextRequest) {
