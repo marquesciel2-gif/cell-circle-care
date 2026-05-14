@@ -38,7 +38,8 @@ interface PDFConfig {
   orientation?: 'portrait' | 'landscape'
 }
 
-export function createPDFDocument(config: PDFConfig): jsPDF {
+// Funcao para criar documento PDF com header profissional
+const createPDFDocument = (config: PDFConfig): jsPDF => {
   const doc = new jsPDF({
     orientation: config.orientation || 'portrait',
     unit: 'mm',
@@ -46,7 +47,6 @@ export function createPDFDocument(config: PDFConfig): jsPDF {
   })
 
   const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 15
 
   // Header com fundo colorido
@@ -116,7 +116,8 @@ export function createPDFDocument(config: PDFConfig): jsPDF {
   return doc
 }
 
-export function addFooter(doc: jsPDF, empresaNome: string) {
+// Funcao para adicionar footer
+const addFooter = (doc: jsPDF, empresaNome: string): void => {
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 15
@@ -157,7 +158,8 @@ export function addFooter(doc: jsPDF, empresaNome: string) {
   }
 }
 
-export function addSectionTitle(doc: jsPDF, title: string, y: number): number {
+// Funcao para adicionar titulo de secao
+const addSectionTitle = (doc: jsPDF, title: string, y: number): number => {
   const margin = 15
 
   doc.setFillColor(...COLORS.background)
@@ -171,13 +173,14 @@ export function addSectionTitle(doc: jsPDF, title: string, y: number): number {
   return y + 10
 }
 
-export function addInfoRow(
+// Funcao para adicionar linha de informacao
+const addInfoRow = (
   doc: jsPDF,
   label: string,
   value: string,
   y: number,
   options?: { bold?: boolean; color?: [number, number, number] }
-): number {
+): number => {
   const margin = 15
 
   doc.setFontSize(10)
@@ -192,7 +195,8 @@ export function addInfoRow(
   return y + 6
 }
 
-export function addValueBox(
+// Funcao para adicionar caixa de valor
+const addValueBox = (
   doc: jsPDF,
   label: string,
   value: string,
@@ -200,7 +204,7 @@ export function addValueBox(
   y: number,
   width: number,
   color: [number, number, number] = COLORS.primary
-): number {
+): number => {
   // Caixa de fundo
   doc.setFillColor(...color)
   doc.roundedRect(x, y, width, 25, 3, 3, 'F')
@@ -219,19 +223,22 @@ export function addValueBox(
   return y + 30
 }
 
-export function formatCurrency(value: number): string {
+// Funcao para formatar moeda
+const formatCurrency = (value: number): string => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
   }).format(value)
 }
 
-export function formatDate(date: string | Date | null): string {
+// Funcao para formatar data
+const formatDate = (date: string | Date | null): string => {
   if (!date) return '-'
   return new Date(date).toLocaleDateString('pt-BR')
 }
 
-export function getTableStyles() {
+// Funcao para obter estilos da tabela
+const getTableStyles = () => {
   return {
     headStyles: {
       fillColor: COLORS.primary,
@@ -256,4 +263,14 @@ export function getTableStyles() {
   }
 }
 
-export { COLORS }
+export {
+  COLORS,
+  createPDFDocument,
+  addFooter,
+  addSectionTitle,
+  addInfoRow,
+  addValueBox,
+  formatCurrency,
+  formatDate,
+  getTableStyles,
+}
