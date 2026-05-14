@@ -5,6 +5,7 @@ export type StatusEmpresa = 'ativo' | 'vencido' | 'bloqueado'
 export type StatusConserto = 'recebido' | 'diagnostico' | 'aguardando_aprovacao' | 'em_reparo' | 'pronto' | 'entregue' | 'cancelado'
 export type TipoMovimentacao = 'entrada' | 'saida' | 'ajuste'
 export type StatusFinanceiro = 'pendente' | 'pago' | 'atrasado' | 'cancelado'
+export type CargoColaborador = 'tecnico' | 'atendente' | 'gerente' | 'financeiro' | 'admin'
 
 export interface Empresa {
   id: string
@@ -27,8 +28,13 @@ export interface Usuario {
   email: string
   cpf_cnpj: string | null
   cargo: string | null
+  cargo_tipo: CargoColaborador | null
   is_admin: boolean
   is_master: boolean
+  ativo: boolean
+  telefone: string | null
+  comissao_percentual: number | null
+  data_admissao: string | null
   created_at: string
   updated_at: string
   empresa?: Empresa
@@ -212,4 +218,20 @@ export const STATUS_EMPRESA_COLORS: Record<StatusEmpresa, string> = {
   ativo: 'bg-green-500/20 text-green-400',
   vencido: 'bg-yellow-500/20 text-yellow-400',
   bloqueado: 'bg-red-500/20 text-red-400',
+}
+
+export const CARGO_COLABORADOR_LABELS: Record<CargoColaborador, string> = {
+  tecnico: 'Técnico',
+  atendente: 'Atendente',
+  gerente: 'Gerente',
+  financeiro: 'Financeiro',
+  admin: 'Administrador',
+}
+
+export const CARGO_COLABORADOR_COLORS: Record<CargoColaborador, string> = {
+  tecnico: 'bg-blue-500/20 text-blue-400',
+  atendente: 'bg-purple-500/20 text-purple-400',
+  gerente: 'bg-amber-500/20 text-amber-400',
+  financeiro: 'bg-emerald-500/20 text-emerald-400',
+  admin: 'bg-red-500/20 text-red-400',
 }

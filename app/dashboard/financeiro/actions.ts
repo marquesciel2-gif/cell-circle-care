@@ -164,14 +164,14 @@ export async function deleteReceita(id: string) {
   return { success: true }
 }
 
-export async function marcarReceitaPaga(id: string) {
+export async function marcarReceitaPaga(id: string, dataPagamento?: string) {
   const supabase = await createClient()
 
   const { error } = await supabase
     .from('receitas')
     .update({
       status: 'pago',
-      data_pagamento: new Date().toISOString().split('T')[0],
+      data_pagamento: dataPagamento || new Date().toISOString().split('T')[0],
     })
     .eq('id', id)
 
@@ -276,14 +276,14 @@ export async function deleteDespesa(id: string) {
   return { success: true }
 }
 
-export async function marcarDespesaPaga(id: string) {
+export async function marcarDespesaPaga(id: string, dataPagamento?: string) {
   const supabase = await createClient()
 
   const { error } = await supabase
     .from('despesas')
     .update({
       status: 'pago',
-      data_pagamento: new Date().toISOString().split('T')[0],
+      data_pagamento: dataPagamento || new Date().toISOString().split('T')[0],
     })
     .eq('id', id)
 

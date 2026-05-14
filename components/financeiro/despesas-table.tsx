@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
@@ -13,15 +14,20 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { MoreHorizontal, Pencil, Trash2, CheckCircle, TrendingDown, Plus } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Pencil, Trash2, TrendingDown, Plus, Loader2 } from 'lucide-react'
 import type { Despesa } from '@/lib/types'
 import { STATUS_FINANCEIRO_LABELS, STATUS_FINANCEIRO_COLORS } from '@/lib/types'
 import { deleteDespesa, marcarDespesaPaga } from '@/app/dashboard/financeiro/actions'
@@ -33,13 +39,20 @@ interface DespesasTableProps {
 
 export function DespesasTable({ despesas }: DespesasTableProps) {
   const router = useRouter()
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedDespesa, setSelectedDespesa] = useState<Despesa | null>(null)
+  const [dataPagamento, setDataPagamento] = useState(format(new Date(), 'yyyy-MM-dd'))
 
   async function handleDelete(id: string) {
     if (!confirm('Tem certeza que deseja excluir esta despesa?')) {
       return
     }
 
+    setLoadingId(id)
     const result = await deleteDespesa(id)
+    setLoadingId(null)
+    
     if (result.error) {
       toast.error(result.error)
     } else {
@@ -48,14 +61,34 @@ export function DespesasTable({ despesas }: DespesasTableProps) {
     }
   }
 
-  async function handleMarcarPaga(id: string) {
-    const result = await marcarDespesaPaga(id)
+  async function handleTogglePago(despesa: Despesa) {
+    if (despesa.status === 'pago') {
+      toast.info('Esta despesa já foi paga')
+      return
+    }
+    
+    setSelectedDespesa(despesa)
+    setDataPagamento(format(new Date(), 'yyyy-MM-dd'))
+    setDialogOpen(true)
+  }
+
+  async function confirmarPagamento() {
+    if (!selectedDespesa) return
+    
+    setLoadingId(selectedDespesa.id)
+    setDialogOpen(false)
+    
+    const result = await marcarDespesaPaga(selectedDespesa.id, dataPagamento)
+    setLoadingId(null)
+    
     if (result.error) {
       toast.error(result.error)
     } else {
       toast.success('Despesa marcada como paga!')
       router.refresh()
     }
+    
+    setSelectedDespesa(null)
   }
 
   if (despesas.length === 0) {
@@ -79,85 +112,129 @@ export function DespesasTable({ despesas }: DespesasTableProps) {
   }
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Descrição</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Valor</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Data</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {despesas.map((despesa) => (
-              <TableRow key={despesa.id}>
-                <TableCell>
-                  <div>
-                    <span className="font-medium">{despesa.descricao}</span>
-                    {despesa.fornecedor && (
-                      <span className="text-muted-foreground text-sm block">
-                        {despesa.fornecedor}
-                      </span>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {despesa.categoria || <span className="text-muted-foreground">-</span>}
-                </TableCell>
-                <TableCell className="font-medium text-red-500">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(despesa.valor)}
-                </TableCell>
-                <TableCell>
-                  <Badge 
-                    variant="secondary" 
-                    className={STATUS_FINANCEIRO_COLORS[despesa.status]}
-                  >
-                    {STATUS_FINANCEIRO_LABELS[despesa.status]}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {format(new Date(despesa.created_at), 'dd/MM/yyyy', { locale: ptBR })}
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Ações</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {despesa.status === 'pendente' && (
-                        <DropdownMenuItem onClick={() => handleMarcarPaga(despesa.id)}>
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Marcar como Paga
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem asChild>
-                        <Link href={`/dashboard/financeiro/despesas/${despesa.id}`}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => handleDelete(despesa.id)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+    <>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Descrição</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead>Valor</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead className="text-center">Pago</TableHead>
+                <TableHead className="w-[100px]">Ações</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+            </TableHeader>
+            <TableBody>
+              {despesas.map((despesa) => (
+                <TableRow key={despesa.id}>
+                  <TableCell>
+                    <div>
+                      <span className="font-medium">{despesa.descricao}</span>
+                      {despesa.fornecedor && (
+                        <span className="text-muted-foreground text-sm block">
+                          {despesa.fornecedor}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {despesa.categoria || <span className="text-muted-foreground">-</span>}
+                  </TableCell>
+                  <TableCell className="font-medium text-red-500">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(despesa.valor)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant="secondary" 
+                      className={STATUS_FINANCEIRO_COLORS[despesa.status]}
+                    >
+                      {STATUS_FINANCEIRO_LABELS[despesa.status]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <div>{format(new Date(despesa.created_at), 'dd/MM/yyyy', { locale: ptBR })}</div>
+                      {despesa.data_pagamento && (
+                        <div className="text-emerald-500 text-xs">
+                          Pago: {format(new Date(despesa.data_pagamento), 'dd/MM/yyyy', { locale: ptBR })}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {loadingId === despesa.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                    ) : (
+                      <Switch
+                        checked={despesa.status === 'pago'}
+                        onCheckedChange={() => handleTogglePago(despesa)}
+                        disabled={despesa.status === 'pago'}
+                        className="data-[state=checked]:bg-emerald-600"
+                      />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        asChild
+                        title="Editar"
+                      >
+                        <Link href={`/dashboard/financeiro/despesas/${despesa.id}`}>
+                          <Pencil className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(despesa.id)}
+                        className="text-destructive hover:text-destructive"
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Dialog para escolher data de pagamento */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar Pagamento</DialogTitle>
+            <DialogDescription>
+              Informe a data em que a despesa foi paga.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="data_pagamento">Data do Pagamento</Label>
+            <Input
+              id="data_pagamento"
+              type="date"
+              value={dataPagamento}
+              onChange={(e) => setDataPagamento(e.target.value)}
+              className="mt-2"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmarPagamento} className="bg-emerald-600 hover:bg-emerald-700">
+              Confirmar Pagamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

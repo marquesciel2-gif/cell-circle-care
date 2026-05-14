@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronUp,
   Building2,
+  UserCog,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -71,6 +72,11 @@ const menuItems = [
     title: 'Relatórios',
     url: '/dashboard/relatorios',
     icon: BarChart3,
+  },
+  {
+    title: 'Colaboradores',
+    url: '/dashboard/colaboradores',
+    icon: UserCog,
   },
 ]
 
