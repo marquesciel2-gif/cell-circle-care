@@ -54,14 +54,16 @@ export function DashboardHeader({ usuario }: DashboardHeaderProps) {
             const name = pathNames[segment] || segment
 
             return (
-              <BreadcrumbItem key={segment}>
-                {index > 0 && <BreadcrumbSeparator />}
-                {isLast ? (
-                  <BreadcrumbPage>{name}</BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink href={href}>{name}</BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
+              <span key={segment} className="inline-flex items-center gap-1.5">
+                {index > 0 && <span className="text-muted-foreground">/</span>}
+                <BreadcrumbItem>
+                  {isLast ? (
+                    <BreadcrumbPage>{name}</BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink href={href}>{name}</BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
+              </span>
             )
           })}
         </BreadcrumbList>

@@ -142,6 +142,25 @@ export interface Despesa {
   updated_at: string
 }
 
+export interface Parcela {
+  id: string
+  empresa_id: string
+  receita_id: string | null
+  cliente_id: string | null
+  conserto_id: string | null
+  numero_parcela: number
+  total_parcelas: number
+  valor: number
+  data_vencimento: string
+  data_pagamento: string | null
+  status: StatusFinanceiro
+  forma_pagamento: string | null
+  observacoes: string | null
+  created_at: string
+  updated_at: string
+  cliente?: Cliente
+}
+
 // Helper types
 export const STATUS_CONSERTO_LABELS: Record<StatusConserto, string> = {
   recebido: 'Recebido',

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -44,6 +45,8 @@ const statusOptions: StatusFinanceiro[] = ['pendente', 'pago', 'atrasado', 'canc
 export function ReceitaForm({ receita, clientes }: ReceitaFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [parcelado, setParcelado] = useState(false)
+  const [numParcelas, setNumParcelas] = useState(2)
   const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -154,6 +157,53 @@ export function ReceitaForm({ receita, clientes }: ReceitaFormProps) {
             defaultValue={receita?.data_vencimento || ''}
           />
         </div>
+
+        {!receita && (
+          <div className="space-y-4 md:col-span-2 p-4 border rounded-lg bg-muted/30">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="parcelado" 
+                name="parcelado"
+                checked={parcelado}
+                onCheckedChange={(checked) => setParcelado(checked === true)}
+              />
+              <Label htmlFor="parcelado" className="cursor-pointer">
+                Parcelar (Crediário)
+              </Label>
+            </div>
+            
+            {parcelado && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="numero_parcelas">Número de Parcelas</Label>
+                  <Select 
+                    name="numero_parcelas" 
+                    value={numParcelas.toString()}
+                    onValueChange={(v) => setNumParcelas(parseInt(v))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
+                        <SelectItem key={n} value={n.toString()}>
+                          {n}x
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor por Parcela</Label>
+                  <p className="text-lg font-semibold text-emerald-500">
+                    {/* O valor será calculado no submit */}
+                    Será calculado automaticamente
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {receita && (
           <div className="space-y-2">

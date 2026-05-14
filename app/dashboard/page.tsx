@@ -9,6 +9,7 @@ import {
   TrendingUp
 } from 'lucide-react'
 import { RecentConsertos } from '@/components/dashboard/recent-consertos'
+import { DashboardCharts } from '@/components/dashboard/charts'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
