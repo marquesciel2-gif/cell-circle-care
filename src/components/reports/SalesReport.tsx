@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
 import { format, isWithinInterval, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Search, Calendar, Printer, Loader2 } from "lucide-react";
+import { Search, Calendar, Printer, Loader2, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAccounts } from "@/hooks/useAccounts";
+import { useAccounts, Account } from "@/hooks/useAccounts";
+import { ClientDetailDrawer } from "@/components/clients/ClientDetailDrawer";
+import { ReceiptModal } from "@/components/modals/ReceiptModal";
 import {
   Popover,
   PopoverContent,
@@ -27,6 +29,21 @@ export function SalesReport() {
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
+  });
+  const [clientDrawer, setClientDrawer] = useState<{ id: string | null; name: string } | null>(null);
+  const [receiptAccount, setReceiptAccount] = useState<Account | null>(null);
+
+  const toOldFormat = (a: Account) => ({
+    id: 0,
+    cliente: a.client_name,
+    telefone: "",
+    descricao: a.descricao,
+    valor: a.valor_total,
+    valorPago: a.valor_pago,
+    dataVencimento: a.vencimento ? format(new Date(a.vencimento), "dd/MM/yyyy", { locale: ptBR }) : "",
+    formaPagamento: a.forma_pagamento as any,
+    numeroParcelas: a.parcelas,
+    status: a.status as any,
   });
 
   // "Vendas" = contas com origem = "venda"
