@@ -277,6 +277,7 @@ export function RepairsSection() {
             onDelete={deleteRepair}
             onChangeDeliveredAt={repair.status === "entregue" ? handleChangeDeliveredAt : undefined}
             onOpenClient={(id, name) => setClientDrawer({ id, name })}
+            onReceipt={handleReceipt}
             canEdit={canEdit}
           />
         ))}
