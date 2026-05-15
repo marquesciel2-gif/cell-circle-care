@@ -347,6 +347,26 @@ export function RepairsSection() {
         clientId={clientDrawer?.id ?? null}
         fallbackName={clientDrawer?.name ?? ""}
       />
+      <ReceiptModal
+        open={receiptOpen}
+        onClose={() => setReceiptOpen(false)}
+        account={
+          receiptRepair
+            ? {
+                id: 0,
+                cliente: receiptRepair.client_name,
+                telefone: "",
+                descricao: `Conserto: ${receiptRepair.device} – ${receiptRepair.problem}`,
+                valor: Number(receiptRepair.value || 0),
+                valorPago: Number(receiptRepair.value || 0),
+                dataVencimento: format(new Date(receiptRepair.finished_at || receiptRepair.created_at), "dd/MM/yyyy", { locale: ptBR }),
+                formaPagamento: "avista" as any,
+                numeroParcelas: 1,
+                status: "pago" as any,
+              }
+            : null
+        }
+      />
     </div>
   );
 }
