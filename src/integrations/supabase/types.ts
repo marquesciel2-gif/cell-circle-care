@@ -23,6 +23,7 @@ export type Database = {
           descricao: string
           forma_pagamento: string
           id: string
+          origem: string
           parcelas: number
           status: string
           updated_at: string
@@ -38,6 +39,7 @@ export type Database = {
           descricao: string
           forma_pagamento: string
           id?: string
+          origem?: string
           parcelas?: number
           status?: string
           updated_at?: string
@@ -53,6 +55,7 @@ export type Database = {
           descricao?: string
           forma_pagamento?: string
           id?: string
+          origem?: string
           parcelas?: number
           status?: string
           updated_at?: string
@@ -111,6 +114,8 @@ export type Database = {
           data_despesa: string
           descricao: string
           forma_pagamento: string
+          fornecedor_id: string | null
+          fornecedor_nome: string | null
           id: string
           status: string
           updated_at: string
@@ -123,6 +128,8 @@ export type Database = {
           data_despesa?: string
           descricao: string
           forma_pagamento: string
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
           id?: string
           status?: string
           updated_at?: string
@@ -135,6 +142,8 @@ export type Database = {
           data_despesa?: string
           descricao?: string
           forma_pagamento?: string
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
           id?: string
           status?: string
           updated_at?: string

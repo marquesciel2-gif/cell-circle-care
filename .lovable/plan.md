@@ -1,80 +1,75 @@
-## Objetivo
+## Por que os relatórios "não funcionam"
 
-Tornar todos os módulos do sistema verdadeiramente conectados ao cliente e entre si, eliminando dados soltos e duplicados.
+Conferi os dados reais da sua conta (admin):
 
-## 1. Cliente em todo lugar (vínculo real, não só nome)
+- **Vendas vazio** — o relatório de vendas filtra contas cuja descrição começa com "Venda". Todas as suas contas atuais foram criadas como conserto/venda livre ("Bateria Iphone 7", "TV 32 POL", etc.), então nada aparece. Vou trocar para classificar a origem da conta por um campo real (`origem`: venda / conserto / manual) em vez de adivinhar pelo texto.
+- **Despesas falta info** — relatório atual mostra categoria/valor mas não tem filtro por período nem fornecedor.
+- **Contas falta info** — falta link clicável pro cliente e o recibo só aparece via ícone discreto.
 
-**Onde adicionar o seletor de clientes (`ClientPicker`):**
-- ✅ Nova Conta (já feito)
-- ✅ Novo Conserto (já feito)
-- Editar Conserto (`EditRepairModal`)
-- Editar Conta (`EditAccountModal`)
-- Modal de venda de estoque (novo — ver seção 3)
+Não há erro de runtime; é classificação errada + dados antigos sem vínculo.
 
-**Salvar `client_id` (não só `client_name`):**
-- Quando o usuário escolher um cliente do dropdown, gravar o `client_id` em `repairs` e `accounts_receivable`. Hoje o campo existe nas tabelas mas está sendo ignorado.
-- Se o usuário digitar um nome novo (sem selecionar), oferecer um checkbox "Cadastrar este cliente" para criar o registro automaticamente e já vincular.
+## O que vou fazer
 
-**Ficha do cliente (nova aba na seção Clientes):**
-Ao clicar num cliente, abrir um painel/drawer com:
-- Dados de contato
-- Aba "Consertos" — todos os consertos desse cliente (status, data, valor)
-- Aba "Contas" — todas as contas (status, valor pago/pendente)
-- Resumo: total já pago, total em aberto, nº de serviços
+### 1. Relatórios funcionando de verdade
 
-## 2. Conserto → Conta automática
+- Adicionar coluna `origem` em `accounts_receivable` (`venda` | `conserto` | `manual`) e popular automaticamente conforme o ponto de criação. Backfill: contas existentes ficam como `manual`.
+- **SalesReport** passa a filtrar por `origem = 'venda'` (não mais por texto "Venda:").
+- **AccountsReport** ganha filtro de período (date range) igual ao de vendas, e o nome do cliente vira link pro drawer.
+- **ExpensesReport** ganha filtro de período + coluna fornecedor, totais por mês.
+- Botão "Recibo" visível e claro (não só ícone) em vendas e contas.
 
-Ao finalizar um conserto (`FinishRepairModal`):
-- Após informar o valor, perguntar **"Como o cliente vai pagar?"** com 3 opções:
-  - **À vista (já pago)** → cria a conta com `valor_pago = valor_total`, status `pago`, sem gerar pendência
-  - **Cartão** → cria conta paga, forma `cartao`
-  - **Promissória/Fiado** → abre data de vencimento + parcelas, cria conta `pendente`
-- A conta gerada herda `client_id`, `client_name` do conserto e descrição `"Conserto: {device} – {problem}"`.
+### 2. Despesas com fornecedor
 
-## 3. Venda de estoque → Baixa + Conta
+- Adicionar `fornecedor_nome` e `fornecedor_id` (opcional) em `expenses`.
+- `AddExpenseModal` ganha um `ClientPicker` (reutilizando o componente — clientes e fornecedores compartilham a mesma tabela `clients`, sem schema novo).
+- Coluna "Fornecedor" no relatório de despesas.
 
-Substituir o botão "Vender" atual (que apenas decrementa quantidade silenciosamente) por um modal **"Registrar Venda"**:
-- Seleciona cliente (via `ClientPicker`)
-- Quantidade vendida (default 1)
-- Preço de venda (pré-preenchido com `preco_venda` do item, editável)
-- Forma de pagamento (à vista / cartão / promissória)
-- Se promissória: vencimento + parcelas
+### 3. Conserto consome peça do estoque
 
-Ao confirmar:
-1. Decrementa `quantidade` no estoque
-2. Cria conta a receber vinculada (paga ou pendente conforme forma)
-3. Toast com link "Ver conta"
+- No `FinishRepairModal`, novo bloco opcional **"Peças usadas"**: lista pesquisável do estoque + quantidade por peça.
+- Ao finalizar:
+  - decrementa `quantidade` de cada peça
+  - soma o custo das peças no valor sugerido (editável)
+  - registra na descrição da conta gerada: `"Conserto: iPhone 7 — Bateria (1x)"`
+- Sem tabela nova de movimentação (regra do projeto: não rastrear histórico de estoque).
 
-## 4. Navegação cruzada (links clicáveis)
+### 4. Ficha do cliente completa
 
-- Nos cards de **Contas a Receber**: nome do cliente vira link → abre ficha do cliente
-- Nos cards de **Consertos**: nome do cliente vira link → abre ficha do cliente
-- Na ficha do cliente: cada conserto/conta linka pra sua seção
+- O `ClientDetailDrawer` já tem Consertos + Contas. Adicionar:
+  - Aba **Vendas** (contas com `origem = 'venda'`)
+  - Cartão de resumo: total vendido, total em conserto, total recebido, total em aberto
+  - Botão "Gerar recibo" em cada linha
 
-## Detalhes técnicos
+### 5. Recibo em qualquer lugar
 
-**Schema (sem alterações estruturais necessárias):**
-- `repairs.client_id` e `accounts_receivable.client_id` já existem — só passar a popular.
-- Considerar adicionar índices em `client_id` para consultas por cliente.
+- Botão "Recibo" (texto + ícone, não só ícone) em:
+  - Cards de Contas a Receber (já existe — só destacar)
+  - Cards de Consertos finalizados (novo)
+  - Linhas do relatório de vendas (novo)
+- Todos abrem o `ReceiptModal` existente.
 
-**Hooks novos/atualizados:**
-- `useClientHistory(clientId)` — busca consertos + contas do cliente
-- `useRepairs.finishRepair` ganha parâmetro opcional `accountData` e dispara `addAccount` em sequência
-- `useInventory.sellItem(id, payload)` substitui `decrementQuantity`, fazendo decremento + criar conta
+## De*talhes técnicos*
 
-**Componentes novos:**
-- `ClientDetailDrawer` (sheet com tabs)
-- `SellInventoryModal`
-- `FinishRepairModal` revisado (com seleção de forma de pagamento)
+**Migrações:**
 
-**Componentes atualizados:**
-- `EditRepairModal`, `EditAccountModal` → usar `ClientPicker`
-- `ClientsSection` → linha clicável abrindo o drawer
-- `RepairsSection`, `AccountsReceivable` → cliente clicável
+```sql
+ALTER TABLE accounts_receivable ADD COLUMN origem text DEFAULT 'manual';
+-- backfill: contas que vieram de venda já têm "Venda:" no descricao
+UPDATE accounts_receivable SET origem = 'venda' WHERE descricao ILIKE 'venda%';
+UPDATE accounts_receivable SET origem = 'conserto' WHERE descricao ILIKE 'conserto%';
 
-**RLS:** nenhuma mudança — políticas existentes já cobrem inserts cruzados (vendedor cria sua própria conta; admin tudo).
+ALTER TABLE expenses ADD COLUMN fornecedor_nome text;
+ALTER TABLE expenses ADD COLUMN fornecedor_id uuid;
+```
+
+**Hooks:** `useAccounts.addAccount` aceita `origem`. `useRepairs.finishRepair` aceita `pecas: {id, quantidade, preco}[]` e decrementa via `useInventory.updateItem`.
+
+**Componentes:** edita `FinishRepairModal`, `AddExpenseModal`, `ExpensesReport`, `AccountsReport`, `SalesReport`, `ClientDetailDrawer`, `RepairsSection`.
 
 ## Fora de escopo
 
-- Não migra dados antigos (registros existentes sem `client_id` continuam apenas com nome)
-- Não altera relatórios/recibos nesta etapa
+- Edição em massa de origem das contas antigas (ficam como `manual` exceto as que o backfill conseguir identificar pelo texto).
+- Histórico de movimentação de estoque (proibido por regra do projeto).
+- Pagamento de fornecedor a prazo (despesas continuam sendo só `pago`/`pendente` simples).  
+  
+q
