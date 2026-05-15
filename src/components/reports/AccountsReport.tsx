@@ -253,7 +253,7 @@ export function AccountsReport() {
                   const restante = account.valor_total - account.valor_pago;
                   return (
                     <tr key={account.id} className="border-b border-border transition-colors hover:bg-muted/30">
-                      <td className="px-4 py-3"><p className="font-medium text-foreground">{account.client_name}</p></td>
+                      <td className="px-4 py-3"><p className="font-medium text-foreground">{account.client_name}</p><p className="text-[10px] text-muted-foreground capitalize">{account.origem}</p></td>
                       <td className="px-4 py-3 text-sm text-muted-foreground max-w-[200px] truncate">{account.descricao}</td>
                       <td className="px-4 py-3 text-center">
                         <Badge variant="secondary" className="text-xs">

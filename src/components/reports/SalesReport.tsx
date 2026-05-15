@@ -202,21 +202,35 @@ export function SalesReport() {
                 <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Pagamento</th>
                 <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Valor</th>
                 <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Data</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground print:hidden">Recibo</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Nenhuma venda encontrada no período.</td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Nenhuma venda encontrada no período.</td>
                 </tr>
               ) : (
                 filtered.map((s) => (
                   <tr key={s.id} className="border-b border-border transition-colors hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium text-foreground">{s.descricao}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{s.client_name || "-"}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <button
+                        type="button"
+                        onClick={() => setClientDrawer({ id: s.client_id, name: s.client_name })}
+                        className="text-muted-foreground hover:text-primary underline-offset-2 hover:underline"
+                      >
+                        {s.client_name || "-"}
+                      </button>
+                    </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{PAYMENT_LABELS[s.forma_pagamento] || s.forma_pagamento}</td>
                     <td className="px-4 py-3 text-right font-medium text-foreground">R$ {s.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
                     <td className="px-4 py-3 text-center text-sm text-muted-foreground">{format(parseISO(s.created_at), "dd/MM/yyyy")}</td>
+                    <td className="px-4 py-3 text-center print:hidden">
+                      <Button size="sm" variant="ghost" onClick={() => setReceiptAccount(s)}>
+                        <Receipt className="h-4 w-4" />
+                      </Button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -228,6 +242,18 @@ export function SalesReport() {
       <div className="flex items-center justify-between text-sm text-muted-foreground print:hidden">
         <span>{filtered.length} vendas encontradas</span>
       </div>
+
+      <ClientDetailDrawer
+        open={!!clientDrawer}
+        onClose={() => setClientDrawer(null)}
+        clientId={clientDrawer?.id ?? null}
+        fallbackName={clientDrawer?.name ?? ""}
+      />
+      <ReceiptModal
+        open={!!receiptAccount}
+        onClose={() => setReceiptAccount(null)}
+        account={receiptAccount ? toOldFormat(receiptAccount) : null}
+      />
     </div>
   );
 }
