@@ -20,12 +20,15 @@ import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { AddRepairModal } from "@/components/modals/AddRepairModal";
 import { EditRepairModal, EditRepairPayload } from "@/components/modals/EditRepairModal";
 import { FinishRepairModal, FinishRepairPayload } from "@/components/modals/FinishRepairModal";
+import { ReceiptModal } from "@/components/modals/ReceiptModal";
 import { ClientDetailDrawer } from "@/components/clients/ClientDetailDrawer";
 import { useRepairs, Repair } from "@/hooks/useRepairs";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useInventory } from "@/hooks/useInventory";
 import { useUserRole } from "@/hooks/useUserRole";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Receipt } from "lucide-react";
 
 const statusConfig = {
   pendente: { label: "Pendente", icon: Clock, className: "bg-warning/10 text-warning border-warning/20" },
