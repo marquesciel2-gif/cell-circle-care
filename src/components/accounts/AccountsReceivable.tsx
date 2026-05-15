@@ -92,6 +92,7 @@ export function AccountsReceivable() {
       parcelas: newAccount.numeroParcelas || 1,
       forma_pagamento: newAccount.formaPagamento,
       vencimento: newAccount.dataVencimento,
+      origem: "manual",
     };
     await addAccount(input);
     setModalOpen(false);
