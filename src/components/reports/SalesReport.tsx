@@ -29,9 +29,9 @@ export function SalesReport() {
     to: endOfMonth(new Date()),
   });
 
-  // "Vendas" = contas geradas por vendas de estoque (descrição começa com "Venda")
+  // "Vendas" = contas com origem = "venda"
   const sales = useMemo(
-    () => accounts.filter((a) => a.descricao.toLowerCase().startsWith("venda")),
+    () => accounts.filter((a) => a.origem === "venda"),
     [accounts]
   );
 
