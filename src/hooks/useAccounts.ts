@@ -17,7 +17,7 @@ export interface Account {
   forma_pagamento: string;
   status: string;
   vencimento: string | null;
-  origem: AccountOrigem;
+  origem: string;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -83,6 +83,7 @@ export function useAccounts() {
           forma_pagamento: input.forma_pagamento,
           status,
           vencimento: input.vencimento || null,
+          origem: input.origem || "manual",
           created_by: user.id,
         })
         .select()
