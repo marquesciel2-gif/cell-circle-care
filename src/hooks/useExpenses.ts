@@ -11,6 +11,8 @@ export interface Expense {
   data_despesa: string;
   forma_pagamento: string;
   status: "pago" | "pendente";
+  fornecedor_id: string | null;
+  fornecedor_nome: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -46,6 +48,8 @@ export interface NewExpense {
   data_despesa: string;
   forma_pagamento: string;
   status: "pago" | "pendente";
+  fornecedor_id?: string | null;
+  fornecedor_nome?: string | null;
 }
 
 export function useExpenses() {

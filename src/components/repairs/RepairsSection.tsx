@@ -20,12 +20,15 @@ import { Calendar as CalendarPicker } from "@/components/ui/calendar";
 import { AddRepairModal } from "@/components/modals/AddRepairModal";
 import { EditRepairModal, EditRepairPayload } from "@/components/modals/EditRepairModal";
 import { FinishRepairModal, FinishRepairPayload } from "@/components/modals/FinishRepairModal";
+import { ReceiptModal } from "@/components/modals/ReceiptModal";
 import { ClientDetailDrawer } from "@/components/clients/ClientDetailDrawer";
 import { useRepairs, Repair } from "@/hooks/useRepairs";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useInventory } from "@/hooks/useInventory";
 import { useUserRole } from "@/hooks/useUserRole";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Receipt } from "lucide-react";
 
 const statusConfig = {
   pendente: { label: "Pendente", icon: Clock, className: "bg-warning/10 text-warning border-warning/20" },
@@ -43,10 +46,11 @@ interface RepairCardProps {
   onDelete: (id: string) => void;
   onChangeDeliveredAt?: (id: string, date: Date) => void;
   onOpenClient: (clientId: string | null, name: string) => void;
+  onReceipt: (repair: Repair) => void;
   canEdit: boolean;
 }
 
-function RepairCard({ repair, onStart, onFinish, onDeliver, onEdit, onDelete, onChangeDeliveredAt, onOpenClient, canEdit }: RepairCardProps) {
+function RepairCard({ repair, onStart, onFinish, onDeliver, onEdit, onDelete, onChangeDeliveredAt, onOpenClient, onReceipt, canEdit }: RepairCardProps) {
   const config = statusConfig[repair.status as keyof typeof statusConfig] || statusConfig.pendente;
   const StatusIcon = config.icon;
 
@@ -118,6 +122,11 @@ function RepairCard({ repair, onStart, onFinish, onDeliver, onEdit, onDelete, on
           {repair.value ? `R$ ${Number(repair.value).toLocaleString('pt-BR')}` : "Valor a definir"}
         </span>
         <div className="flex gap-2">
+          {(repair.status === "pronto" || repair.status === "entregue") && repair.value && (
+            <Button size="sm" variant="outline" onClick={() => onReceipt(repair)} title="Gerar recibo">
+              <Receipt className="h-4 w-4 mr-1" /> Recibo
+            </Button>
+          )}
           {repair.status === "pendente" && canEdit && (
             <Button size="sm" variant="outline" onClick={() => onStart(repair.id)}>
               Iniciar Reparo
@@ -144,11 +153,14 @@ export function RepairsSection() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [finishModalOpen, setFinishModalOpen] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [receiptRepair, setReceiptRepair] = useState<Repair | null>(null);
   const [selectedRepair, setSelectedRepair] = useState<Repair | null>(null);
   const [clientDrawer, setClientDrawer] = useState<{ id: string | null; name: string } | null>(null);
 
   const { repairs, loading, addRepair, startRepair, finishRepair, deliverRepair, updateRepair, deleteRepair } = useRepairs();
   const { addAccount } = useAccounts();
+  const { items, updateItem } = useInventory();
   const { isAdmin, isTecnico } = useUserRole();
 
   const canEdit = isAdmin || isTecnico;
@@ -181,22 +193,41 @@ export function RepairsSection() {
     const repair = repairs.find((r) => r.id === id);
     await finishRepair(id, payload.valor);
 
+    // Baixa peças do estoque
+    for (const peca of payload.pecas) {
+      const item = items.find((i) => i.id === peca.id);
+      if (item) {
+        await updateItem(item.id, {
+          quantidade: Math.max(0, item.quantidade - peca.quantidade),
+        });
+      }
+    }
+
     // Cria conta vinculada
     if (repair) {
       const isPaid = payload.formaPagamento !== "promissoria";
+      const pecasDesc = payload.pecas.length
+        ? ` [${payload.pecas.map((p) => `${p.nome}${p.quantidade > 1 ? ` ${p.quantidade}x` : ""}`).join(", ")}]`
+        : "";
       await addAccount({
         client_id: repair.client_id || undefined,
         client_name: repair.client_name,
-        descricao: `Conserto: ${repair.device} – ${repair.problem}`,
+        descricao: `Conserto: ${repair.device} – ${repair.problem}${pecasDesc}`,
         valor_total: payload.valor,
         valor_pago: isPaid ? payload.valor : 0,
         parcelas: payload.parcelas || 1,
         forma_pagamento: payload.formaPagamento,
         vencimento: payload.vencimento || undefined,
+        origem: "conserto",
       });
     }
 
     setFinishModalOpen(false);
+  };
+
+  const handleReceipt = (repair: Repair) => {
+    setReceiptRepair(repair);
+    setReceiptOpen(true);
   };
 
   const handleEdit = (repair: Repair) => {
@@ -246,6 +277,7 @@ export function RepairsSection() {
             onDelete={deleteRepair}
             onChangeDeliveredAt={repair.status === "entregue" ? handleChangeDeliveredAt : undefined}
             onOpenClient={(id, name) => setClientDrawer({ id, name })}
+            onReceipt={handleReceipt}
             canEdit={canEdit}
           />
         ))}
@@ -314,6 +346,26 @@ export function RepairsSection() {
         onClose={() => setClientDrawer(null)}
         clientId={clientDrawer?.id ?? null}
         fallbackName={clientDrawer?.name ?? ""}
+      />
+      <ReceiptModal
+        open={receiptOpen}
+        onClose={() => setReceiptOpen(false)}
+        account={
+          receiptRepair
+            ? {
+                id: 0,
+                cliente: receiptRepair.client_name,
+                telefone: "",
+                descricao: `Conserto: ${receiptRepair.device} – ${receiptRepair.problem}`,
+                valor: Number(receiptRepair.value || 0),
+                valorPago: Number(receiptRepair.value || 0),
+                dataVencimento: format(new Date(receiptRepair.finished_at || receiptRepair.created_at), "dd/MM/yyyy", { locale: ptBR }),
+                formaPagamento: "avista" as any,
+                numeroParcelas: 1,
+                status: "pago" as any,
+              }
+            : null
+        }
       />
     </div>
   );

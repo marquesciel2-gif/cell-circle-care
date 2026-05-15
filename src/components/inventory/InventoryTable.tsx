@@ -83,6 +83,7 @@ export function InventoryTable({ title, type }: InventoryTableProps) {
       parcelas: payload.parcelas || 1,
       forma_pagamento: payload.forma_pagamento,
       vencimento: payload.vencimento,
+      origem: "venda",
     });
 
     setSellItem(null);

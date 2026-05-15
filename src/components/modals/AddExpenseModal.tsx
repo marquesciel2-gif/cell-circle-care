@@ -26,6 +26,8 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { EXPENSE_CATEGORIES, NewExpense } from "@/hooks/useExpenses";
+import { ClientPicker } from "@/components/clients/ClientPicker";
+import { useClients } from "@/hooks/useClients";
 
 interface AddExpenseModalProps {
   isOpen: boolean;
@@ -34,12 +36,15 @@ interface AddExpenseModalProps {
 }
 
 export function AddExpenseModal({ isOpen, onClose, onAdd }: AddExpenseModalProps) {
+  const { addClient } = useClients();
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [categoria, setCategoria] = useState("");
   const [dataExpense, setDataExpense] = useState<Date>(new Date());
   const [formaPagamento, setFormaPagamento] = useState("");
   const [status, setStatus] = useState<"pago" | "pendente">("pendente");
+  const [fornecedorNome, setFornecedorNome] = useState("");
+  const [fornecedorId, setFornecedorId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,6 +56,12 @@ export function AddExpenseModal({ isOpen, onClose, onAdd }: AddExpenseModalProps
 
     setIsSubmitting(true);
 
+    let resolvedFornecedorId = fornecedorId;
+    if (fornecedorNome && !resolvedFornecedorId) {
+      const c = await addClient({ nome: fornecedorNome });
+      if (c) resolvedFornecedorId = c.id;
+    }
+
     const success = await onAdd({
       descricao,
       valor: parseFloat(valor),
@@ -58,6 +69,8 @@ export function AddExpenseModal({ isOpen, onClose, onAdd }: AddExpenseModalProps
       data_despesa: format(dataExpense, "yyyy-MM-dd"),
       forma_pagamento: formaPagamento,
       status,
+      fornecedor_nome: fornecedorNome || null,
+      fornecedor_id: resolvedFornecedorId,
     });
 
     if (success) {
@@ -75,6 +88,8 @@ export function AddExpenseModal({ isOpen, onClose, onAdd }: AddExpenseModalProps
     setDataExpense(new Date());
     setFormaPagamento("");
     setStatus("pendente");
+    setFornecedorNome("");
+    setFornecedorId(null);
   };
 
   const handleClose = () => {
@@ -128,6 +143,23 @@ export function AddExpenseModal({ isOpen, onClose, onAdd }: AddExpenseModalProps
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Fornecedor (opcional)</Label>
+            <ClientPicker
+              value={fornecedorNome}
+              onChange={setFornecedorNome}
+              onSelect={(c) => {
+                if (c) {
+                  setFornecedorId(c.id);
+                  setFornecedorNome(c.nome);
+                } else {
+                  setFornecedorId(null);
+                }
+              }}
+              placeholder="Buscar ou cadastrar fornecedor"
+            />
           </div>
 
           <div className="space-y-2">

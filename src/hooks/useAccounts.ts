@@ -4,6 +4,8 @@ import { toast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
+export type AccountOrigem = "venda" | "conserto" | "manual";
+
 export interface Account {
   id: string;
   client_id: string | null;
@@ -15,6 +17,7 @@ export interface Account {
   forma_pagamento: string;
   status: string;
   vencimento: string | null;
+  origem: string;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -29,6 +32,7 @@ export interface AccountInput {
   parcelas?: number;
   forma_pagamento: string;
   vencimento?: string;
+  origem?: AccountOrigem;
 }
 
 export function useAccounts() {
@@ -79,6 +83,7 @@ export function useAccounts() {
           forma_pagamento: input.forma_pagamento,
           status,
           vencimento: input.vencimento || null,
+          origem: input.origem || "manual",
           created_by: user.id,
         })
         .select()

@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
 import { format, isWithinInterval, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Search, Calendar, Printer, Loader2 } from "lucide-react";
+import { Search, Calendar, Printer, Loader2, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAccounts } from "@/hooks/useAccounts";
+import { useAccounts, Account } from "@/hooks/useAccounts";
+import { ClientDetailDrawer } from "@/components/clients/ClientDetailDrawer";
+import { ReceiptModal } from "@/components/modals/ReceiptModal";
 import {
   Popover,
   PopoverContent,
@@ -28,10 +30,25 @@ export function SalesReport() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
+  const [clientDrawer, setClientDrawer] = useState<{ id: string | null; name: string } | null>(null);
+  const [receiptAccount, setReceiptAccount] = useState<Account | null>(null);
 
-  // "Vendas" = contas geradas por vendas de estoque (descrição começa com "Venda")
+  const toOldFormat = (a: Account) => ({
+    id: 0,
+    cliente: a.client_name,
+    telefone: "",
+    descricao: a.descricao,
+    valor: a.valor_total,
+    valorPago: a.valor_pago,
+    dataVencimento: a.vencimento ? format(new Date(a.vencimento), "dd/MM/yyyy", { locale: ptBR }) : "",
+    formaPagamento: a.forma_pagamento as any,
+    numeroParcelas: a.parcelas,
+    status: a.status as any,
+  });
+
+  // "Vendas" = contas com origem = "venda"
   const sales = useMemo(
-    () => accounts.filter((a) => a.descricao.toLowerCase().startsWith("venda")),
+    () => accounts.filter((a) => a.origem === "venda"),
     [accounts]
   );
 
@@ -185,21 +202,35 @@ export function SalesReport() {
                 <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Pagamento</th>
                 <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Valor</th>
                 <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">Data</th>
+                <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground print:hidden">Recibo</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Nenhuma venda encontrada no período.</td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Nenhuma venda encontrada no período.</td>
                 </tr>
               ) : (
                 filtered.map((s) => (
                   <tr key={s.id} className="border-b border-border transition-colors hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium text-foreground">{s.descricao}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{s.client_name || "-"}</td>
+                    <td className="px-4 py-3 text-sm">
+                      <button
+                        type="button"
+                        onClick={() => setClientDrawer({ id: s.client_id, name: s.client_name })}
+                        className="text-muted-foreground hover:text-primary underline-offset-2 hover:underline"
+                      >
+                        {s.client_name || "-"}
+                      </button>
+                    </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">{PAYMENT_LABELS[s.forma_pagamento] || s.forma_pagamento}</td>
                     <td className="px-4 py-3 text-right font-medium text-foreground">R$ {s.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
                     <td className="px-4 py-3 text-center text-sm text-muted-foreground">{format(parseISO(s.created_at), "dd/MM/yyyy")}</td>
+                    <td className="px-4 py-3 text-center print:hidden">
+                      <Button size="sm" variant="ghost" onClick={() => setReceiptAccount(s)}>
+                        <Receipt className="h-4 w-4" />
+                      </Button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -211,6 +242,18 @@ export function SalesReport() {
       <div className="flex items-center justify-between text-sm text-muted-foreground print:hidden">
         <span>{filtered.length} vendas encontradas</span>
       </div>
+
+      <ClientDetailDrawer
+        open={!!clientDrawer}
+        onClose={() => setClientDrawer(null)}
+        clientId={clientDrawer?.id ?? null}
+        fallbackName={clientDrawer?.name ?? ""}
+      />
+      <ReceiptModal
+        open={!!receiptAccount}
+        onClose={() => setReceiptAccount(null)}
+        account={receiptAccount ? toOldFormat(receiptAccount) : null}
+      />
     </div>
   );
 }
