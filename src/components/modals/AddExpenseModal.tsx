@@ -146,6 +146,23 @@ export function AddExpenseModal({ isOpen, onClose, onAdd }: AddExpenseModalProps
           </div>
 
           <div className="space-y-2">
+            <Label>Fornecedor (opcional)</Label>
+            <ClientPicker
+              value={fornecedorNome}
+              onChange={setFornecedorNome}
+              onSelect={(c) => {
+                if (c) {
+                  setFornecedorId(c.id);
+                  setFornecedorNome(c.nome);
+                } else {
+                  setFornecedorId(null);
+                }
+              }}
+              placeholder="Buscar ou cadastrar fornecedor"
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label>Data da Despesa</Label>
             <Popover>
               <PopoverTrigger asChild>
