@@ -30,7 +30,7 @@ export function useMigrateLocalStorage() {
   const [migrationComplete, setMigrationComplete] = useState(false);
 
   const migrateAll = async () => {
-    if (!user || migrating) return;
+    if (!user || !tenantId || migrating) return;
     
     const hasMigrated = localStorage.getItem("migration_complete_v2");
     if (hasMigrated === "true") {
