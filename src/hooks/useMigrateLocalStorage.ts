@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useTenant } from "./useTenant";
 import { toast } from "@/hooks/use-toast";
 
 // Helper to convert DD/MM/YYYY to YYYY-MM-DD
