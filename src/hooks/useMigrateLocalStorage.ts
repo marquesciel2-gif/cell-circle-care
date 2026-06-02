@@ -160,6 +160,7 @@ export function useMigrateLocalStorage() {
 
         for (const item of localData) {
           const { error } = await supabase.from("inventory").insert({
+            tenant_id: tenantId!,
             nome: item.nome || item.name || item.modelo || "Produto",
             descricao: item.descricao || item.description || null,
             quantidade: item.quantidade || item.quantity || 1,
