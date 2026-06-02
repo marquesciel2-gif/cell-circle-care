@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useTenant } from "./useTenant";
 import { toast } from "sonner";
 
 export interface Expense {
@@ -54,6 +55,7 @@ export interface NewExpense {
 
 export function useExpenses() {
   const { user } = useAuth();
+  const { tenantId } = useTenant();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -84,13 +86,14 @@ export function useExpenses() {
   }, [fetchExpenses]);
 
   const addExpense = async (expense: NewExpense) => {
-    if (!user) {
+    if (!user || !tenantId) {
       toast.error("Usuário não autenticado");
       return false;
     }
 
     const { error } = await supabase.from("expenses").insert({
       ...expense,
+      tenant_id: tenantId,
       created_by: user.id,
     });
 

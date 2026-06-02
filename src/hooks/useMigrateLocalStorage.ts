@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useTenant } from "./useTenant";
 import { toast } from "@/hooks/use-toast";
 
 // Helper to convert DD/MM/YYYY to YYYY-MM-DD
@@ -24,11 +25,12 @@ const convertDate = (dateStr: string | null | undefined): string | null => {
 
 export function useMigrateLocalStorage() {
   const { user } = useAuth();
+  const { tenantId } = useTenant();
   const [migrating, setMigrating] = useState(false);
   const [migrationComplete, setMigrationComplete] = useState(false);
 
   const migrateAll = async () => {
-    if (!user || migrating) return;
+    if (!user || !tenantId || migrating) return;
     
     const hasMigrated = localStorage.getItem("migration_complete_v2");
     if (hasMigrated === "true") {
@@ -87,6 +89,7 @@ export function useMigrateLocalStorage() {
       let migrated = 0;
       for (const item of localData) {
         const { error } = await supabase.from("accounts_receivable").insert({
+          tenant_id: tenantId!,
           client_name: item.cliente || item.client_name || "Cliente",
           descricao: item.descricao || "Sem descrição",
           valor_total: item.valor || item.valor_total || 0,
@@ -122,6 +125,7 @@ export function useMigrateLocalStorage() {
       let migrated = 0;
       for (const item of localData) {
         const { error } = await supabase.from("clients").insert({
+          tenant_id: tenantId!,
           nome: item.nome || item.name || "Cliente",
           telefone: item.telefone || item.phone || null,
           email: item.email || null,
@@ -156,6 +160,7 @@ export function useMigrateLocalStorage() {
 
         for (const item of localData) {
           const { error } = await supabase.from("inventory").insert({
+            tenant_id: tenantId!,
             nome: item.nome || item.name || item.modelo || "Produto",
             descricao: item.descricao || item.description || null,
             quantidade: item.quantidade || item.quantity || 1,
@@ -191,6 +196,7 @@ export function useMigrateLocalStorage() {
       let migrated = 0;
       for (const item of localData) {
         const { error } = await supabase.from("repairs").insert({
+          tenant_id: tenantId!,
           client_name: item.cliente || item.client_name || item.clientName || "Cliente",
           device: item.aparelho || item.device || item.dispositivo || "Dispositivo",
           problem: item.problema || item.problem || item.defeito || "Sem descrição",
@@ -213,10 +219,10 @@ export function useMigrateLocalStorage() {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && tenantId) {
       migrateAll();
     }
-  }, [user]);
+  }, [user, tenantId]);
 
   return { migrating, migrationComplete };
 }

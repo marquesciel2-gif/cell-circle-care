@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useTenant } from "./useTenant";
 import { toast } from "sonner";
 
 export interface Client {
@@ -24,6 +25,7 @@ export interface ClientInput {
 
 export function useClients() {
   const { user } = useAuth();
+  const { tenantId } = useTenant();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -63,7 +65,7 @@ export function useClients() {
   }, [user]);
 
   const addClient = async (input: ClientInput) => {
-    if (!user) {
+    if (!user || !tenantId) {
       toast.error("Você precisa estar logado");
       return null;
     }
@@ -72,6 +74,7 @@ export function useClients() {
       const { data, error } = await supabase
         .from("clients")
         .insert({
+          tenant_id: tenantId,
           nome: input.nome,
           telefone: input.telefone || null,
           email: input.email || null,

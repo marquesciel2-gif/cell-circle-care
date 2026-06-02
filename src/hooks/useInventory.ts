@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useTenant } from "./useTenant";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -27,6 +28,7 @@ export interface InventoryInput {
 
 export function useInventory(categoria?: string) {
   const { user } = useAuth();
+  const { tenantId } = useTenant();
   const queryClient = useQueryClient();
 
   const { data: allItems = [], isLoading: loading } = useQuery({
@@ -45,7 +47,7 @@ export function useInventory(categoria?: string) {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["inventory"] });
 
   const addItem = async (input: InventoryInput) => {
-    if (!user) {
+    if (!user || !tenantId) {
       toast({ title: "Você precisa estar logado", variant: "destructive" });
       return null;
     }
@@ -54,6 +56,7 @@ export function useInventory(categoria?: string) {
       const { data, error } = await supabase
         .from("inventory")
         .insert({
+          tenant_id: tenantId,
           nome: input.nome,
           descricao: input.descricao || null,
           quantidade: input.quantidade,

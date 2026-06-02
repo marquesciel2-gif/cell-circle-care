@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useTenant } from "./useTenant";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -31,6 +32,7 @@ export interface RepairInput {
 
 export function useRepairs() {
   const { user } = useAuth();
+  const { tenantId } = useTenant();
   const queryClient = useQueryClient();
 
   const { data: repairs = [], isLoading: loading } = useQuery({
@@ -50,7 +52,7 @@ export function useRepairs() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["repairs"] });
 
   const addRepair = async (input: RepairInput) => {
-    if (!user) {
+    if (!user || !tenantId) {
       toast({ title: "Você precisa estar logado", variant: "destructive" });
       return null;
     }
@@ -59,6 +61,7 @@ export function useRepairs() {
       const { data, error } = await supabase
         .from("repairs")
         .insert({
+          tenant_id: tenantId,
           client_id: input.client_id || null,
           client_name: input.client_name,
           device: input.device,
