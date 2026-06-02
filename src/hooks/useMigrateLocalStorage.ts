@@ -219,10 +219,10 @@ export function useMigrateLocalStorage() {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && tenantId) {
       migrateAll();
     }
-  }, [user]);
+  }, [user, tenantId]);
 
   return { migrating, migrationComplete };
 }
