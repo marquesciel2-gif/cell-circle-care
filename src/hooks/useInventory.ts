@@ -47,7 +47,7 @@ export function useInventory(categoria?: string) {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["inventory"] });
 
   const addItem = async (input: InventoryInput) => {
-    if (!user) {
+    if (!user || !tenantId) {
       toast({ title: "Você precisa estar logado", variant: "destructive" });
       return null;
     }
@@ -56,6 +56,7 @@ export function useInventory(categoria?: string) {
       const { data, error } = await supabase
         .from("inventory")
         .insert({
+          tenant_id: tenantId,
           nome: input.nome,
           descricao: input.descricao || null,
           quantidade: input.quantidade,
