@@ -64,7 +64,7 @@ export function useAccounts() {
   };
 
   const addAccount = async (input: AccountInput) => {
-    if (!user) {
+    if (!user || !tenantId) {
       toast({ title: "Você precisa estar logado", variant: "destructive" });
       return null;
     }
@@ -76,6 +76,7 @@ export function useAccounts() {
       const { data, error } = await supabase
         .from("accounts_receivable")
         .insert({
+          tenant_id: tenantId,
           client_id: input.client_id || null,
           client_name: input.client_name,
           descricao: input.descricao,
