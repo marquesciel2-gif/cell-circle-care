@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useTenant } from "./useTenant";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
