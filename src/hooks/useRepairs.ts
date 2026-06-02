@@ -32,6 +32,7 @@ export interface RepairInput {
 
 export function useRepairs() {
   const { user } = useAuth();
+  const { tenantId } = useTenant();
   const queryClient = useQueryClient();
 
   const { data: repairs = [], isLoading: loading } = useQuery({
