@@ -89,6 +89,7 @@ export function useMigrateLocalStorage() {
       let migrated = 0;
       for (const item of localData) {
         const { error } = await supabase.from("accounts_receivable").insert({
+          tenant_id: tenantId!,
           client_name: item.cliente || item.client_name || "Cliente",
           descricao: item.descricao || "Sem descrição",
           valor_total: item.valor || item.valor_total || 0,
