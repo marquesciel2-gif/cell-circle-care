@@ -86,13 +86,14 @@ export function useExpenses() {
   }, [fetchExpenses]);
 
   const addExpense = async (expense: NewExpense) => {
-    if (!user) {
+    if (!user || !tenantId) {
       toast.error("Usuário não autenticado");
       return false;
     }
 
     const { error } = await supabase.from("expenses").insert({
       ...expense,
+      tenant_id: tenantId,
       created_by: user.id,
     });
 
