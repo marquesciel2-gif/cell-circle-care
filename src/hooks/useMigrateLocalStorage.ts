@@ -25,6 +25,7 @@ const convertDate = (dateStr: string | null | undefined): string | null => {
 
 export function useMigrateLocalStorage() {
   const { user } = useAuth();
+  const { tenantId } = useTenant();
   const [migrating, setMigrating] = useState(false);
   const [migrationComplete, setMigrationComplete] = useState(false);
 
