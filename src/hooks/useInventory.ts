@@ -28,6 +28,7 @@ export interface InventoryInput {
 
 export function useInventory(categoria?: string) {
   const { user } = useAuth();
+  const { tenantId } = useTenant();
   const queryClient = useQueryClient();
 
   const { data: allItems = [], isLoading: loading } = useQuery({
