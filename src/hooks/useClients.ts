@@ -65,7 +65,7 @@ export function useClients() {
   }, [user]);
 
   const addClient = async (input: ClientInput) => {
-    if (!user) {
+    if (!user || !tenantId) {
       toast.error("Você precisa estar logado");
       return null;
     }
@@ -74,6 +74,7 @@ export function useClients() {
       const { data, error } = await supabase
         .from("clients")
         .insert({
+          tenant_id: tenantId,
           nome: input.nome,
           telefone: input.telefone || null,
           email: input.email || null,
