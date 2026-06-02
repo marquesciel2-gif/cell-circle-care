@@ -25,6 +25,7 @@ export interface ClientInput {
 
 export function useClients() {
   const { user } = useAuth();
+  const { tenantId } = useTenant();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
 
