@@ -38,6 +38,7 @@ export interface AccountInput {
 
 export function useAccounts() {
   const { user } = useAuth();
+  const { tenantId } = useTenant();
   const queryClient = useQueryClient();
 
   const { data: accounts = [], isLoading: loading } = useQuery({
