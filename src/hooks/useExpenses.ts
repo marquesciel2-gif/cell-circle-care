@@ -55,6 +55,7 @@ export interface NewExpense {
 
 export function useExpenses() {
   const { user } = useAuth();
+  const { tenantId } = useTenant();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
 
