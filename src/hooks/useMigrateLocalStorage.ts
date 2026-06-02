@@ -196,6 +196,7 @@ export function useMigrateLocalStorage() {
       let migrated = 0;
       for (const item of localData) {
         const { error } = await supabase.from("repairs").insert({
+          tenant_id: tenantId!,
           client_name: item.cliente || item.client_name || item.clientName || "Cliente",
           device: item.aparelho || item.device || item.dispositivo || "Dispositivo",
           problem: item.problema || item.problem || item.defeito || "Sem descrição",
