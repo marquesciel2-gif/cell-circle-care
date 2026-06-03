@@ -412,6 +412,7 @@ export type Database = {
           current_period_end: string | null
           id: string
           nome: string
+          onboarded: boolean
           owner_id: string
           plano: string
           status: string
@@ -424,6 +425,7 @@ export type Database = {
           current_period_end?: string | null
           id?: string
           nome: string
+          onboarded?: boolean
           owner_id: string
           plano?: string
           status?: string
@@ -436,6 +438,7 @@ export type Database = {
           current_period_end?: string | null
           id?: string
           nome?: string
+          onboarded?: boolean
           owner_id?: string
           plano?: string
           status?: string
