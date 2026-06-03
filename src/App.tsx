@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
 import Onboarding from "./pages/Onboarding";
+import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -63,8 +64,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
-            <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
+            <Route path="/" element={<Landing />} />
             <Route
               path="/app/*"
               element={
