@@ -32,24 +32,13 @@ export function useAuth() {
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/onboarding`,
+        data: { nome },
       },
     });
 
     if (error) throw error;
-
-    // Create profile
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert({
-          user_id: data.user.id,
-          nome,
-        });
-
-      if (profileError) throw profileError;
-    }
-
+    // Profile + tenant + role are auto-created by the on_auth_user_created trigger.
     return data;
   };
 
