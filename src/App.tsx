@@ -11,7 +11,9 @@ import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
 import Onboarding from "./pages/Onboarding";
 import Landing from "./pages/Landing";
+import Billing from "./pages/Billing";
 import NotFound from "./pages/NotFound";
+import { SubscriptionGate } from "./components/SubscriptionGate";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
