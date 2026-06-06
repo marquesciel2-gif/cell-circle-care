@@ -11,7 +11,9 @@ import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
 import Onboarding from "./pages/Onboarding";
 import Landing from "./pages/Landing";
+import Billing from "./pages/Billing";
 import NotFound from "./pages/NotFound";
+import { SubscriptionGate } from "./components/SubscriptionGate";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -67,10 +69,20 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
             <Route
+              path="/app/billing"
+              element={
+                <ProtectedRoute>
+                  <Billing />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/app/*"
               element={
                 <ProtectedRoute>
-                  <Index />
+                  <SubscriptionGate>
+                    <Index />
+                  </SubscriptionGate>
                 </ProtectedRoute>
               }
             />
