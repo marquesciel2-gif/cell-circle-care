@@ -377,6 +377,62 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plano: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plano?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plano?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_members: {
         Row: {
           created_at: string
@@ -416,6 +472,8 @@ export type Database = {
           owner_id: string
           plano: string
           status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           subscription_id: string | null
           trial_ends_at: string
           updated_at: string
@@ -429,6 +487,8 @@ export type Database = {
           owner_id: string
           plano?: string
           status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           subscription_id?: string | null
           trial_ends_at?: string
           updated_at?: string
@@ -442,6 +502,8 @@ export type Database = {
           owner_id?: string
           plano?: string
           status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           subscription_id?: string | null
           trial_ends_at?: string
           updated_at?: string
