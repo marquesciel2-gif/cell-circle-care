@@ -69,10 +69,20 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/app" element={<Navigate to="/app/dashboard" replace />} />
             <Route
+              path="/app/billing"
+              element={
+                <ProtectedRoute>
+                  <Billing />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/app/*"
               element={
                 <ProtectedRoute>
-                  <Index />
+                  <SubscriptionGate>
+                    <Index />
+                  </SubscriptionGate>
                 </ProtectedRoute>
               }
             />
