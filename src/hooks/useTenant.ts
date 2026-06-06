@@ -11,9 +11,13 @@ export interface Tenant {
   status: string;
   trial_ends_at: string;
   subscription_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_customer_id: string | null;
   current_period_end: string | null;
   onboarded: boolean;
 }
+
+const ACTIVE_STATUSES = new Set(["active", "trialing"]);
 
 export function useTenant() {
   const { user } = useAuth();
@@ -34,7 +38,11 @@ export function useTenant() {
 
       const [{ data: tenant }, { data: rolesRows }] = await Promise.all([
         supabase.from("tenants").select("*").eq("id", member.tenant_id).maybeSingle(),
-        supabase.from("user_roles").select("role").eq("user_id", user.id).eq("tenant_id", member.tenant_id),
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("tenant_id", member.tenant_id),
       ]);
 
       return {
@@ -57,18 +65,37 @@ export function useTenant() {
     ? "vendedor"
     : null;
 
-  const trialDaysRemaining = tenant?.trial_ends_at
-    ? Math.max(0, Math.ceil((new Date(tenant.trial_ends_at).getTime() - Date.now()) / 86_400_000))
+  const trialEnd = tenant?.trial_ends_at ? new Date(tenant.trial_ends_at) : null;
+  const trialDaysRemaining = trialEnd
+    ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / 86_400_000))
     : 0;
+  const trialExpired = !!trialEnd && trialEnd.getTime() < Date.now();
+
+  const status = tenant?.status ?? null;
+  const plano = tenant?.plano ?? null;
+
+  // Access is blocked when:
+  // - status is canceled / unpaid / past_due / incomplete_expired
+  // - status is trialing but trial already expired and no paid subscription
+  let isAccessBlocked = false;
+  if (tenant) {
+    if (status && !ACTIVE_STATUSES.has(status)) {
+      isAccessBlocked = true;
+    } else if (status === "trialing" && trialExpired) {
+      isAccessBlocked = true;
+    }
+  }
 
   return {
     tenant,
     tenantId: tenant?.id ?? null,
     role,
     roles,
-    plano: tenant?.plano ?? null,
-    status: tenant?.status ?? null,
+    plano,
+    status,
     trialDaysRemaining,
+    trialExpired,
+    isAccessBlocked,
     onboarded: tenant?.onboarded ?? false,
     isOwner: !!tenant && tenant.owner_id === user?.id,
     loading: isLoading,
