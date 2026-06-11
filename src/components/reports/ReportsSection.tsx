@@ -3,8 +3,31 @@ import { BarChart3, Receipt, FileText, Wallet } from "lucide-react";
 import { SalesReport } from "./SalesReport";
 import { AccountsReport } from "./AccountsReport";
 import { ExpensesReport } from "./ExpensesReport";
+import { useFeatureGate } from "@/hooks/useFeatureGate";
+import { UpgradeNotice } from "@/components/UpgradeNotice";
 
 export function ReportsSection() {
+  const { allowed } = useFeatureGate("advanced_reports");
+  if (!allowed) {
+    return (
+      <div className="space-y-4 animate-slide-up">
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-primary/10 p-2">
+            <BarChart3 className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Relatórios</h1>
+            <p className="text-sm text-muted-foreground">Visualize vendas e contas</p>
+          </div>
+        </div>
+        <UpgradeNotice
+          title="Relatórios avançados"
+          message="Relatórios completos de vendas, contas e despesas estão disponíveis nos planos Pro e Business."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 animate-slide-up">
       {/* Header */}

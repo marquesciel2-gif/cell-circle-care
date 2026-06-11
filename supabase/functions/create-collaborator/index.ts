@@ -6,6 +6,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const PLAN_USER_LIMITS: Record<string, number> = {
+  free: 1,
+  trial: Infinity,
+  pro: Infinity,
+  business: Infinity,
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -20,7 +27,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate caller is authenticated
     const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
@@ -39,16 +45,33 @@ Deno.serve(async (req) => {
 
     const callerUserId = claimsData.claims.sub;
 
-    // Check if caller is admin using service role
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Resolve caller's tenant
+    const { data: callerMember } = await supabaseAdmin
+      .from("tenant_members")
+      .select("tenant_id")
+      .eq("user_id", callerUserId)
+      .limit(1)
+      .maybeSingle();
+
+    if (!callerMember?.tenant_id) {
+      return new Response(
+        JSON.stringify({ error: "Tenant não encontrado para o usuário" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    const tenantId = callerMember.tenant_id as string;
+
+    // Caller must be admin in this tenant
     const { data: roleData } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", callerUserId)
+      .eq("tenant_id", tenantId)
       .eq("role", "admin")
       .maybeSingle();
 
@@ -59,7 +82,30 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Parse request body
+    // Enforce plan user limits
+    const { data: tenant } = await supabaseAdmin
+      .from("tenants")
+      .select("plano, status")
+      .eq("id", tenantId)
+      .maybeSingle();
+
+    const effectivePlan = tenant?.status === "trialing" ? "trial" : tenant?.plano ?? "free";
+    const userLimit = PLAN_USER_LIMITS[effectivePlan] ?? 1;
+
+    const { count: memberCount } = await supabaseAdmin
+      .from("tenant_members")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", tenantId);
+
+    if ((memberCount ?? 0) >= userLimit) {
+      return new Response(
+        JSON.stringify({
+          error: `Limite de usuários do plano ${effectivePlan} atingido (${userLimit}). Faça upgrade para adicionar mais.`,
+        }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { email, password, nome, roles } = await req.json();
 
     if (!email || !password || !nome) {
@@ -93,11 +139,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Create auth user using admin API
+    // handle_new_user trigger will auto-create a tenant + admin role for the new user.
+    // We undo that and attach them to the caller's tenant instead.
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: false,
+      email_confirm: true,
+      user_metadata: { nome: nome.trim() },
     });
 
     if (createError) {
@@ -112,24 +160,37 @@ Deno.serve(async (req) => {
 
     const newUserId = newUser.user.id;
 
-    // Create profile
-    const { error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .insert({ user_id: newUserId, nome: nome.trim() });
+    // Cleanup auto-created tenant from handle_new_user trigger (cascades members + roles)
+    const { data: autoTenant } = await supabaseAdmin
+      .from("tenants")
+      .select("id")
+      .eq("owner_id", newUserId)
+      .maybeSingle();
+    if (autoTenant?.id) {
+      await supabaseAdmin.from("tenants").delete().eq("id", autoTenant.id);
+    }
 
-    if (profileError) {
-      // Cleanup: delete the auth user if profile fails
+    // Ensure profile exists
+    await supabaseAdmin
+      .from("profiles")
+      .upsert({ user_id: newUserId, nome: nome.trim() }, { onConflict: "user_id" });
+
+    // Attach to caller's tenant
+    const { error: memberError } = await supabaseAdmin
+      .from("tenant_members")
+      .insert({ tenant_id: tenantId, user_id: newUserId });
+    if (memberError) {
       await supabaseAdmin.auth.admin.deleteUser(newUserId);
       return new Response(
-        JSON.stringify({ error: `Erro ao criar perfil: ${profileError.message}` }),
+        JSON.stringify({ error: `Erro ao vincular ao tenant: ${memberError.message}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Add roles
     const rolesToInsert = roles.map((role: string) => ({
       user_id: newUserId,
       role,
+      tenant_id: tenantId,
     }));
 
     const { error: rolesError } = await supabaseAdmin
@@ -149,7 +210,7 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: `Erro interno: ${err.message}` }),
+      JSON.stringify({ error: `Erro interno: ${(err as Error).message}` }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
