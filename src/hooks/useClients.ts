@@ -28,6 +28,7 @@ export interface ClientInput {
 export function useClients() {
   const { user } = useAuth();
   const { tenantId } = useTenant();
+  const { canAddClient, limits, plan } = usePlanLimits();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,6 +72,13 @@ export function useClients() {
       toast.error("Você precisa estar logado");
       return null;
     }
+    if (!canAddClient) {
+      toast.error(
+        `Limite do plano ${plan} atingido (${limits.clients} clientes). Faça upgrade para cadastrar mais.`
+      );
+      return null;
+    }
+
 
     try {
       const { data, error } = await supabase
