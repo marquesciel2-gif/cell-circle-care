@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useTenant } from "./useTenant";
+import { usePlanLimits } from "./useFeatureGate";
 import { toast } from "sonner";
+
 
 export interface Client {
   id: string;
