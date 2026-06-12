@@ -81,6 +81,12 @@ export function Header({ onMenuClick, onNavigate }: HeaderProps) {
               <Settings className="mr-2 h-4 w-4" />
               <span>Configurações</span>
             </DropdownMenuItem>
+            {isSuperAdmin && (
+              <DropdownMenuItem onClick={() => navigate("/app/ceo")} className="cursor-pointer">
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                <span>Painel CEO</span>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="cursor-pointer text-destructive">
               <LogOut className="mr-2 h-4 w-4" />
