@@ -1,10 +1,11 @@
 // Plan and Stripe price definitions
 export const PRICE_IDS = {
+  starter: "price_1ThVzJConXjx1MMD3HhWNk18",
   pro: "price_1Tf8fCConXjx1MMDBtmQQeKT",
   business: "price_1Tf8fUConXjx1MMDSWevuRUy",
 } as const;
 
-export type PlanId = "free" | "pro" | "business";
+export type PlanId = "free" | "starter" | "pro" | "business";
 
 export interface PlanDef {
   id: PlanId;
@@ -19,16 +20,17 @@ export interface PlanDef {
 
 export const PLANS: PlanDef[] = [
   {
-    id: "free",
-    name: "Free",
-    price: "R$ 0",
-    priceCents: 0,
-    description: "Para começar a operar a loja sem custo.",
+    id: "starter",
+    name: "Starter",
+    price: "R$ 20",
+    priceCents: 2000,
+    priceId: PRICE_IDS.starter,
+    description: "14 dias grátis. Depois R$20/mês para manter o acesso básico.",
     features: [
+      "14 dias de teste gratuito",
       "1 usuário",
       "Até 50 clientes",
       "Estoque e consertos",
-      "Sem relatórios avançados",
     ],
   },
   {
@@ -63,6 +65,7 @@ export const PLANS: PlanDef[] = [
 ];
 
 export function planFromPriceId(priceId: string | null | undefined): PlanId {
+  if (priceId === PRICE_IDS.starter) return "starter";
   if (priceId === PRICE_IDS.pro) return "pro";
   if (priceId === PRICE_IDS.business) return "business";
   return "free";
