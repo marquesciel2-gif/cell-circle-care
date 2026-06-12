@@ -280,6 +280,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_tenant_id: string | null
           avatar_url: string | null
           cpf: string | null
           created_at: string
@@ -289,6 +290,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          active_tenant_id?: string | null
           avatar_url?: string | null
           cpf?: string | null
           created_at?: string
@@ -298,6 +300,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          active_tenant_id?: string | null
           avatar_url?: string | null
           cpf?: string | null
           created_at?: string
@@ -306,7 +309,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_active_tenant_id_fkey"
+            columns: ["active_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       repairs: {
         Row: {
@@ -547,6 +558,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_additional_tenant: { Args: { _nome: string }; Returns: string }
       get_clients_for_user: {
         Args: never
         Returns: {
@@ -588,6 +600,7 @@ export type Database = {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
       }
+      switch_active_tenant: { Args: { _tenant_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "tecnico" | "vendedor"

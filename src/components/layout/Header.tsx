@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import type { AppSettings } from "@/types";
+import { StoreSwitcher } from "./StoreSwitcher";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -50,6 +51,7 @@ export function Header({ onMenuClick, onNavigate }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        <StoreSwitcher />
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-destructive" />
