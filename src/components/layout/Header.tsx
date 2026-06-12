@@ -28,6 +28,8 @@ export function Header({ onMenuClick, onNavigate }: HeaderProps) {
     storeAddress: "",
   });
   const { user, signOut } = useAuth();
+  const { isSuperAdmin } = useTenant();
+  const navigate = useNavigate();
 
   const handleSettingsClick = () => {
     if (onNavigate) {
