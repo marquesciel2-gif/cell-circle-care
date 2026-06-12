@@ -1,4 +1,5 @@
-import { Bell, Menu, User, Settings, LogOut } from "lucide-react";
+import { Bell, Menu, User, Settings, LogOut, ShieldCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import {
@@ -10,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
+import { useTenant } from "@/hooks/useTenant";
 import type { AppSettings } from "@/types";
 import { StoreSwitcher } from "./StoreSwitcher";
 
@@ -26,6 +28,8 @@ export function Header({ onMenuClick, onNavigate }: HeaderProps) {
     storeAddress: "",
   });
   const { user, signOut } = useAuth();
+  const { isSuperAdmin } = useTenant();
+  const navigate = useNavigate();
 
   const handleSettingsClick = () => {
     if (onNavigate) {
@@ -77,6 +81,12 @@ export function Header({ onMenuClick, onNavigate }: HeaderProps) {
               <Settings className="mr-2 h-4 w-4" />
               <span>Configurações</span>
             </DropdownMenuItem>
+            {isSuperAdmin && (
+              <DropdownMenuItem onClick={() => navigate("/app/ceo")} className="cursor-pointer">
+                <ShieldCheck className="mr-2 h-4 w-4" />
+                <span>Painel CEO</span>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="cursor-pointer text-destructive">
               <LogOut className="mr-2 h-4 w-4" />

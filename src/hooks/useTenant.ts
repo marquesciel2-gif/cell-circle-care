@@ -84,12 +84,19 @@ export function useTenant() {
   const status = tenant?.status ?? null;
   const plano = tenant?.plano ?? null;
 
+  const SUPER_ADMIN_EMAIL = "marquesciel2@gmail.com";
+  const isSuperAdmin = !!user?.email && user.email.toLowerCase() === SUPER_ADMIN_EMAIL;
+
   // Access is blocked when:
   // - status is canceled / unpaid / past_due / incomplete_expired
   // - status is trialing but trial already expired and no paid subscription
+  // - admin_blocked = true (suspended by CEO)
+  // Super admin (CEO) never gets blocked.
   let isAccessBlocked = false;
-  if (tenant) {
-    if (status && !ACTIVE_STATUSES.has(status)) {
+  if (tenant && !isSuperAdmin) {
+    if ((tenant as any).admin_blocked) {
+      isAccessBlocked = true;
+    } else if (status && !ACTIVE_STATUSES.has(status)) {
       isAccessBlocked = true;
     } else if (status === "trialing" && trialExpired) {
       isAccessBlocked = true;
@@ -106,7 +113,8 @@ export function useTenant() {
     trialDaysRemaining,
     trialExpired,
     isAccessBlocked,
-    onboarded: tenant?.onboarded ?? false,
+    isSuperAdmin,
+    onboarded: isSuperAdmin ? true : (tenant?.onboarded ?? false),
     isOwner: !!tenant && tenant.owner_id === user?.id,
     loading: isLoading,
     refetch,

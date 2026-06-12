@@ -41,7 +41,10 @@ export const PLAN_LIMITS = {
 } as const;
 
 export function useFeatureGate(feature: Feature) {
-  const { plano, status } = useTenant();
+  const { plano, status, isSuperAdmin } = useTenant();
+  if (isSuperAdmin) {
+    return { allowed: true, plan: "super_admin", reason: null };
+  }
   // During trial, unlock pro features
   const effective = status === "trialing" ? "trial" : plano ?? "free";
   const allowed = (FEATURES[effective] ?? []).includes(feature);
