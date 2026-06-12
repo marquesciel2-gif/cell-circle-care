@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import type { AppSettings } from "@/types";
+import { StoreSwitcher } from "./StoreSwitcher";
 
 interface HeaderProps {
   onMenuClick: () => void;
