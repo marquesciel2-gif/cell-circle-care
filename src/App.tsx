@@ -12,6 +12,7 @@ import Cadastro from "./pages/Cadastro";
 import Onboarding from "./pages/Onboarding";
 import Landing from "./pages/Landing";
 import Billing from "./pages/Billing";
+import CEO from "./pages/CEO";
 import NotFound from "./pages/NotFound";
 import { SubscriptionGate } from "./components/SubscriptionGate";
 import { Loader2 } from "lucide-react";
