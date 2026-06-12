@@ -1,4 +1,5 @@
-import { Bell, Menu, User, Settings, LogOut } from "lucide-react";
+import { Bell, Menu, User, Settings, LogOut, ShieldCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import {
@@ -10,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
+import { useTenant } from "@/hooks/useTenant";
 import type { AppSettings } from "@/types";
 import { StoreSwitcher } from "./StoreSwitcher";
 
