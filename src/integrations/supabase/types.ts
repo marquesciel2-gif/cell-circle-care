@@ -475,6 +475,7 @@ export type Database = {
       }
       tenants: {
         Row: {
+          admin_blocked: boolean
           created_at: string
           current_period_end: string | null
           id: string
@@ -490,6 +491,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_blocked?: boolean
           created_at?: string
           current_period_end?: string | null
           id?: string
@@ -505,6 +507,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_blocked?: boolean
           created_at?: string
           current_period_end?: string | null
           id?: string
@@ -596,6 +599,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: never; Returns: boolean }
       is_tenant_member: {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
