@@ -12,9 +12,29 @@ import { toast } from "sonner";
 export default function Billing() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { tenant, plano, status, trialDaysRemaining, trialExpired, isOwner, refetch, loading } =
+  const { tenant, plano, status, trialDaysRemaining, trialExpired, isOwner, isSuperAdmin, refetch, loading } =
     useTenant();
   const [busy, setBusy] = useState<string | null>(null);
+
+  if (isSuperAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <Card className="max-w-md w-full">
+          <CardHeader>
+            <CardTitle>Conta CEO</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Sua conta é administradora da plataforma e não possui cobrança.
+            </p>
+            <Button className="w-full" onClick={() => navigate("/app/ceo")}>
+              Ir para o painel CEO
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
