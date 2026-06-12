@@ -27,14 +27,24 @@ export function useTenant() {
     queryFn: async () => {
       if (!user) return null;
 
-      const { data: member } = await supabase
-        .from("tenant_members")
-        .select("tenant_id")
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("active_tenant_id")
         .eq("user_id", user.id)
-        .limit(1)
         .maybeSingle();
 
-      if (!member) return { tenant: null, roles: [] as AppRole[] };
+      const { data: members } = await supabase
+        .from("tenant_members")
+        .select("tenant_id, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+
+      if (!members || members.length === 0) return { tenant: null, roles: [] as AppRole[] };
+
+      const activeId =
+        (profile?.active_tenant_id && members.some((m: any) => m.tenant_id === profile.active_tenant_id)
+          ? profile.active_tenant_id
+          : members[0].tenant_id) as string;
 
       const [{ data: tenant }, { data: rolesRows }] = await Promise.all([
         supabase.from("tenants").select("*").eq("id", member.tenant_id).maybeSingle(),
