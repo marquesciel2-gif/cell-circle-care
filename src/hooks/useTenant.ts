@@ -47,12 +47,12 @@ export function useTenant() {
           : members[0].tenant_id) as string;
 
       const [{ data: tenant }, { data: rolesRows }] = await Promise.all([
-        supabase.from("tenants").select("*").eq("id", member.tenant_id).maybeSingle(),
+        supabase.from("tenants").select("*").eq("id", activeId).maybeSingle(),
         supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", user.id)
-          .eq("tenant_id", member.tenant_id),
+          .eq("tenant_id", activeId),
       ]);
 
       return {
