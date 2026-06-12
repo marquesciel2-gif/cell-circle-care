@@ -12,6 +12,7 @@ export type Feature =
 // Feature matrix per plan
 const FEATURES: Record<string, Feature[]> = {
   free: [],
+  starter: [],
   trial: [
     "advanced_reports",
     "unlimited_users",
@@ -33,6 +34,7 @@ const FEATURES: Record<string, Feature[]> = {
 
 export const PLAN_LIMITS = {
   free: { users: 1, clients: 50 },
+  starter: { users: 1, clients: 50 },
   trial: { users: Infinity, clients: Infinity },
   pro: { users: Infinity, clients: Infinity },
   business: { users: Infinity, clients: Infinity },
