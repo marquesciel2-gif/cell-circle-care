@@ -78,6 +78,14 @@ const App = () => (
               }
             />
             <Route
+              path="/app/ceo"
+              element={
+                <ProtectedRoute requireOnboarded={false}>
+                  <CEO />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/app/*"
               element={
                 <ProtectedRoute>
