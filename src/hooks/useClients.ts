@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useTenant } from "./useTenant";
@@ -32,7 +32,7 @@ export function useClients() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     if (!user) {
       setClients([]);
       setLoading(false);
@@ -61,11 +61,11 @@ export function useClients() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchClients();
-  }, [user]);
+  }, [fetchClients]);
 
   const addClient = async (input: ClientInput) => {
     if (!user || !tenantId) {

@@ -31,8 +31,8 @@ export function ClientDetailDrawer({ open, onClose, clientId, fallbackName }: Cl
     ? (it: { client_id: string | null; client_name: string }) => it.client_id === clientId
     : (it: { client_id: string | null; client_name: string }) => it.client_name === fallbackName;
 
-  const clientRepairs = useMemo(() => repairs.filter(matchKey), [repairs, clientId, fallbackName]);
-  const clientAccounts = useMemo(() => accounts.filter(matchKey), [accounts, clientId, fallbackName]);
+  const clientRepairs = repairs.filter(matchKey);
+  const clientAccounts = accounts.filter(matchKey);
 
   const totals = useMemo(() => {
     const pago = clientAccounts.reduce((s, a) => s + Number(a.valor_pago || 0), 0);
