@@ -222,6 +222,8 @@ export function useMigrateLocalStorage() {
     if (user && tenantId) {
       migrateAll();
     }
+  // A migração deve rodar somente quando a identidade ativa muda.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, tenantId]);
 
   return { migrating, migrationComplete };

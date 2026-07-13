@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,16 +7,19 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Cadastro from "./pages/Cadastro";
-import Onboarding from "./pages/Onboarding";
-import Landing from "./pages/Landing";
-import Billing from "./pages/Billing";
-import CEO from "./pages/CEO";
-import NotFound from "./pages/NotFound";
-import { SubscriptionGate } from "./components/SubscriptionGate";
 import { Loader2 } from "lucide-react";
+
+const Index = lazy(() => import("./pages/Index"));
+const Login = lazy(() => import("./pages/Login"));
+const Cadastro = lazy(() => import("./pages/Cadastro"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const Landing = lazy(() => import("./pages/Landing"));
+const Billing = lazy(() => import("./pages/Billing"));
+const CEO = lazy(() => import("./pages/CEO"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const SubscriptionGate = lazy(() =>
+  import("./components/SubscriptionGate").then((module) => ({ default: module.SubscriptionGate })),
+);
 
 const queryClient = new QueryClient();
 
@@ -56,6 +60,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <Suspense fallback={<FullscreenLoader />}>
           <Routes>
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/cadastro" element={<PublicRoute><Cadastro /></PublicRoute>} />
@@ -97,6 +102,7 @@ const App = () => (
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
